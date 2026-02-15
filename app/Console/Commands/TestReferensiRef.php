@@ -25,7 +25,7 @@ class TestReferensiRef extends Command
     /**
      * Execute the console command.
      */
-    public function handle(WilayahRefService $wilayahService, AdministratifRefService $adminService)
+    public function handle(WilayahRefService $wilayahService, AdministratifRefService $adminService, \App\Services\ReferensiServices\PribadiRefService $pribadiService)
     {
         $this->info('Starting Referensi Services Test...');
 
@@ -98,6 +98,70 @@ class TestReferensiRef extends Command
             $this->info('Total Record: ' . count($transport));
             $this->newLine();
 
+
+            // --- C. PRIBADI & LATAR BELAKANG ---
+            $this->info('--- GROUP PRIBADI & LATAR BELAKANG ---');
+
+            // 1. Get Agama
+            $this->info('Testing getAgama()...');
+            $agama = $pribadiService->getAgama();
+            $this->table(['ID', 'Nama'], array_map(function ($item) {
+                return [
+                    $item['id_agama'] ?? '-',
+                    $item['nama_agama'] ?? '-',
+                ];
+            }, $agama));
+            $this->info('Total Record: ' . count($agama));
+            $this->newLine();
+
+            // 2. Get Kebutuhan Khusus
+            $this->info('Testing getKebutuhanKhusus()...');
+            $kebutuhan = $pribadiService->getKebutuhanKhusus('', 5, 0);
+            $this->table(['ID', 'Nama', 'Ket'], array_map(function ($item) {
+                return [
+                    $item['id_kebutuhan_khusus'] ?? '-',
+                    $item['nama_kebutuhan_khusus'] ?? '-',
+                    $item['keterangan'] ?? '-',
+                ];
+            }, $kebutuhan));
+            $this->info('Total Record: ' . count($kebutuhan));
+            $this->newLine();
+
+            // 3. Get Pekerjaan (Limit 5)
+            $this->info('Testing getPekerjaan(limit=5)...');
+            $pekerjaan = $pribadiService->getPekerjaan('', 5, 0);
+            $this->table(['ID', 'Nama'], array_map(function ($item) {
+                return [
+                    $item['id_pekerjaan'] ?? '-',
+                    $item['nama_pekerjaan'] ?? '-',
+                ];
+            }, $pekerjaan));
+            $this->info('Total Record: ' . count($pekerjaan));
+            $this->newLine();
+
+            // 4. Get Penghasilan
+            $this->info('Testing getPenghasilan()...');
+            $penghasilan = $pribadiService->getPenghasilan();
+            $this->table(['ID', 'Nama'], array_map(function ($item) {
+                return [
+                    $item['id_penghasilan'] ?? '-',
+                    $item['nama_penghasilan'] ?? '-',
+                ];
+            }, $penghasilan));
+            $this->info('Total Record: ' . count($penghasilan));
+            $this->newLine();
+
+            // 5. Get Pembiayaan
+            $this->info('Testing getPembiayaan()...');
+            $pembiayaan = $pribadiService->getPembiayaan();
+            $this->table(['ID', 'Nama'], array_map(function ($item) {
+                return [
+                    $item['id_pembiayaan'] ?? '-',
+                    $item['nama_pembiayaan'] ?? '-',
+                ];
+            }, $pembiayaan));
+            $this->info('Total Record: ' . count($pembiayaan));
+            $this->newLine();
 
             $this->info('All tests completed successfully!');
 

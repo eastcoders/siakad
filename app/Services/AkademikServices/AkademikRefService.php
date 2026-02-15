@@ -97,4 +97,56 @@ class AkademikRefService extends NeoFeederService
             'offset' => $offset,
         ]);
     }
+    /**
+     * Mengambil daftar Jenis Pendaftaran.
+     *
+     * @param string $filter
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     * @throws \Exception
+     */
+    public function getJenisPendaftaran(string $filter = '', int $limit = 0, int $offset = 0): array
+    {
+        return $this->sendRequest('GetJenisPendaftaran', [
+            'filter' => $filter,
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Mengambil daftar Jalur Masuk.
+     *
+     * @param string $filter
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     * @throws \Exception
+     */
+    public function getJalurMasuk(string $filter = '', int $limit = 0, int $offset = 0): array
+    {
+        return $this->sendRequest('GetJalurMasuk', [
+            'filter' => $filter,
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+    /**
+     * Mengambil daftar Jenjang Pendidikan.
+     *
+     * @param string $filter
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     * @throws \Exception
+     */
+    public function getJenjangPendidikan(string $filter = '', int $limit = 0, int $offset = 0): array
+    {
+        return $this->sendRequest('GetJenjangPendidikan', [
+            'filter' => $filter,
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
 }

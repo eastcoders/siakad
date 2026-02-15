@@ -114,6 +114,47 @@ class TestAkademikRef extends Command
                 $this->newLine();
             }
 
+            // 6. Get Jenis Pendaftaran
+            $this->info('Testing getJenisPendaftaran()...');
+            $jp = $service->getJenisPendaftaran();
+            $this->line('Raw Response: ' . json_encode(array_slice($jp, 0, 5), JSON_PRETTY_PRINT));
+            $this->table(['ID', 'Nama', 'Daftar Sekolah'], array_map(function ($item) {
+                return [
+                    $item['id_jenis_daftar'] ?? '-',
+                    $item['nama_jenis_daftar'] ?? '-',
+                    $item['untuk_daftar_sekolah'] ?? '-'
+                ];
+            }, array_slice($jp, 0, 5)));
+            $this->info('Total Record: ' . count($jp));
+            $this->newLine();
+
+            // 7. Get Jalur Masuk
+            $this->info('Testing getJalurMasuk()...');
+            $jm = $service->getJalurMasuk();
+            $this->line('Raw Response: ' . json_encode(array_slice($jm, 0, 5), JSON_PRETTY_PRINT));
+            $this->table(['ID', 'Nama', 'Program'], array_map(function ($item) {
+                return [
+                    $item['id_jalur_masuk'] ?? '-',
+                    $item['nama_jalur_masuk'] ?? '-',
+                    $item['id_program_pendidikan'] ?? '-' // Assuming this field exists, based on typical feeder structure
+                ];
+            }, array_slice($jm, 0, 5)));
+            $this->info('Total Record: ' . count($jm));
+            $this->newLine();
+
+            // 8. Get Jenjang Pendidikan
+            $this->info('Testing getJenjangPendidikan()...');
+            $jp2 = $service->getJenjangPendidikan();
+            $this->line('Raw Response: ' . json_encode(array_slice($jp2, 0, 5), JSON_PRETTY_PRINT));
+            $this->table(['ID', 'Nama'], array_map(function ($item) {
+                return [
+                    $item['id_jenjang_didik'] ?? '-',
+                    $item['nama_jenjang_didik'] ?? '-',
+                ];
+            }, array_slice($jp2, 0, 5)));
+            $this->info('Total Record: ' . count($jp2));
+            $this->newLine();
+
             $this->info('All tests completed successfully!');
 
         } catch (\Exception $e) {
