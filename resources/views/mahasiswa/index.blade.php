@@ -15,69 +15,102 @@
 
 @section('content')
     <div class="card">
+        <div class="card-header border-bottom d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">Daftar Mahasiswa</h5>
+            <div class="d-flex gap-2 align-items-center">
+                 <form action="{{ route('admin.mahasiswa.index') }}" method="GET" class="d-flex gap-2">
+                    <input type="text" name="q" class="form-control" placeholder="Search..." value="{{ request('q') }}">
+                    <button type="submit" class="btn btn-primary"><i class="ri-search-line"></i></button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="px-4 pb-3">
+            <div class="d-flex flex-wrap gap-2 justify-content-between">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary"><i class="ri-filter-3-line me-1"></i> FILTER / SORT</button>
+                    <a href="{{ route('admin.mahasiswa.create') }}" class="btn btn-primary"><i class="ri-add-line me-1"></i> TAMBAH</a>
+                    <button class="btn btn-dark"><i class="ri-add-line me-1"></i> TAMBAH HISTORI LAMPAU</button>
+                </div>
+                <div class="text-muted d-flex align-items-center">
+                    Halaman ini menampilkan data berdasarkan angkatan : <span class="badge bg-warning text-dark ms-1">2023</span>
+                </div>
+            </div>
+        </div>
 
-        <div class="card-datatable table-responsive pt-0">
-            <table class="datatables-basic table table-bordered">
-                <thead>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover text-nowrap">
+                <thead class="table-light">
                     <tr>
-                        <th>No</th>
-                        <th>NIM</th>
+                        <th width="100px">Action</th>
+                        <th width="120px">Status</th>
+                        <th width="50px">No</th>
                         <th>Nama</th>
-                        <th>Prodi</th>
-                        <th>Angkatan</th>
-                        <th>Status</th>
-                        <th>Action</th>
+                        <th>NIM</th>
+                        <th>Program Studi</th>
+                        <th>Jenis Kelamin</th>
+                        <th>Agama</th>
+                        <th>Total SKS Diambil</th>
+                        <th>Tanggal Lahir</th>
                     </tr>
                 </thead>
-                <tbody class="table-border-bottom-0">
-                    <tr>
-                        <td>1</td>
-                        <td><span class="fw-medium">2023001</span></td>
-                        <td>Andi Saputra</td>
-                        <td>Teknik Informatika</td>
-                        <td>2023</td>
-                        <td><span class="badge bg-label-success me-1">Aktif</span></td>
-                        <td>
-                            <div class="dropdown">
-                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                    <i class="ri-more-2-line"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <a class="dropdown-item" href="{{ route('admin.mahasiswa.show', 1) }}"><i
-                                            class="ri-eye-line me-1"></i> Detail</a>
-                                    <a class="dropdown-item" href="{{ route('admin.mahasiswa.edit', 1) }}"><i
-                                            class="ri-pencil-line me-1"></i> Edit</a>
-                                    <a class="dropdown-item" href="javascript:void(0);"><i
-                                            class="ri-delete-bin-6-line me-1"></i> Delete</a>
+                <tbody>
+                    @forelse ($mahasiswa as $index => $item)
+                        <tr>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="{{ route('admin.mahasiswa.show', $item->id) }}" class="btn btn-icon btn-sm btn-info rounded-pill" title="Detail">
+                                        <i class="ri-search-line"></i>
+                                    </a>
+                                    <a href="{{ route('admin.mahasiswa.edit', $item->id) }}" class="btn btn-icon btn-sm btn-warning rounded-pill" title="Edit">
+                                        <i class="ri-pencil-line"></i>
+                                    </a>
+                                    <form action="{{ route('admin.mahasiswa.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-icon btn-sm btn-danger rounded-pill" title="Delete">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
                                 </div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td><span class="fw-medium">2023002</span></td>
-                        <td>Budi Santoso</td>
-                        <td>Manajemen Informatika</td>
-                        <td>2023</td>
-                        <td><span class="badge bg-label-secondary me-1">Nonaktif</span></td>
-                        <td>
-                            <div class="dropdown">
-                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                    <i class="ri-more-2-line"></i>
-                                </button>
-                                <div class="dropdown-menu">
-                                    <a class="dropdown-item" href="{{ route('admin.mahasiswa.show', 2) }}"><i
-                                            class="ri-eye-line me-1"></i> Detail</a>
-                                    <a class="dropdown-item" href="{{ route('admin.mahasiswa.edit', 2) }}"><i
-                                            class="ri-pencil-line me-1"></i> Edit</a>
-                                    <a class="dropdown-item" href="javascript:void(0);"><i
-                                            class="ri-delete-bin-6-line me-1"></i> Delete</a>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
+                            </td>
+                            <td>
+                                @if ($item->is_synced)
+                                    <span class="badge bg-success rounded-pill"> <i class="ri-check-line me-1"></i> sudah sync</span>
+                                @else
+                                    <span class="badge bg-warning rounded-pill"> <i class="ri-time-line me-1"></i> belum sync</span>
+                                @endif
+                            </td>
+                            <td>{{ $mahasiswa->firstItem() + $index }}</td>
+                            <td>
+                                <span class="fw-bold text-primary">{{ $item->nama_mahasiswa }}</span>
+                            </td>
+                            <td>{{ $item->riwayatAktif->nim ?? '-' }}</td>
+                            <td>{{ $item->riwayatAktif->prodi->nama_program_studi ?? '-' }}</td>
+                            <td>{{ $item->jenis_kelamin == 'L' ? 'Laki - Laki' : 'Perempuan' }}</td>
+                            <td>{{ $item->agama->nama_agama ?? '-' }}</td>
+                            <td class="text-center">
+                                {{-- 
+                                    TODO:
+                                    Kolom Total SKS akan diganti dengan hasil agregasi relasi KelasPerkuliahan
+                                    setelah tabel & relasi siap.
+                                --}}
+                                <span class="fw-bold">0</span>
+                            </td>
+                            <td>{{ $item->tanggal_lahir ? $item->tanggal_lahir->format('d/m/Y') : '-' }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="10" class="text-center p-4">
+                                <div class="text-muted">Data mahasiswa tidak ditemukan.</div>
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="card-footer d-flex justify-content-end py-3">
+             {{ $mahasiswa->links() }}
         </div>
     </div>
 @endsection

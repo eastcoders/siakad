@@ -49,6 +49,12 @@ class Mahasiswa extends Model
         return $this->hasMany(RiwayatPendidikan::class, 'id_mahasiswa', 'id');
     }
 
+    public function riwayatAktif()
+    {
+        return $this->hasOne(RiwayatPendidikan::class, 'id_mahasiswa', 'id')
+            ->latest('id_periode_masuk'); // Assuming logic for "active" is latest period or based on status logic if available
+    }
+
     // Relationships needed for Detail View
     public function agama()
     {

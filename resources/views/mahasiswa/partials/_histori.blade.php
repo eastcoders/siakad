@@ -98,8 +98,8 @@
                                             @endif
                                         </td>
                                         <td>{{ $riwayat->nim }}</td>
-                                        <td>{{ $riwayat->id_jenis_daftar }}</td>
-                                        <td>{{ $riwayat->id_periode_masuk }}</td>
+                                        <td>{{ $riwayat->jenisDaftar->nama_jenis_daftar }}</td>
+                                        <td>{{ $riwayat->semester->nama_semester ?? '' }}</td>
                                         <td>{{ $riwayat->tanggal_daftar?->format('d F Y') ?? '-' }}</td>
                                         <td>{{ $riwayat->perguruanTinggi->nama_perguruan_tinggi ?? $riwayat->id_perguruan_tinggi ?? '-' }}
                                         </td>

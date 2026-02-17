@@ -44,7 +44,11 @@ class MahasiswaController extends Controller
      */
     public function index()
     {
-        return view('mahasiswa.index');
+        $mahasiswa = Mahasiswa::with(['riwayatAktif.prodi', 'agama'])
+            ->orderBy('nama_mahasiswa')
+            ->paginate(10);
+
+        return view('mahasiswa.index', compact('mahasiswa'));
     }
 
     /**

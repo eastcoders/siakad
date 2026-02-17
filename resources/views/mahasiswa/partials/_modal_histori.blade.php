@@ -367,6 +367,9 @@
                             prodiAsalSelect.disabled = true;
                         }
 
+                        // Set value directly regardless of flatpickr instance
+                        document.getElementById('rp_tanggal_daftar').value = data.tanggal_daftar;
+                        
                         if (fpTanggalMasuk && data.tanggal_daftar) {
                             fpTanggalMasuk.setDate(data.tanggal_daftar, true);
                         }

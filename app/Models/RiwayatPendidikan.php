@@ -36,6 +36,16 @@ class RiwayatPendidikan extends Model
         return $this->belongsTo(ProgramStudi::class, 'id_prodi', 'id_prodi');
     }
 
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class, 'id_periode_masuk', 'id_semester');
+    }
+
+    public function jenisDaftar()
+    {
+        return $this->belongsTo(JenisDaftar::class, 'id_jenis_daftar', 'id_jenis_daftar');
+    }
+
     public function getIdJenisDaftarAttribute($value)
     {
         return trim($value);
