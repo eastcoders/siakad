@@ -25,7 +25,7 @@ class NeoFeederService
      * @return array
      * @throws Exception
      */
-    protected function sendRequest(string $act, array $params = []): array
+    protected function sendRequest(string $act, array $params = [])
     {
         try {
             // Payload dasar

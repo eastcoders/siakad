@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DosenController;
 use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\RiwayatPendidikanMahasiswaController;
+use App\Http\Controllers\MataKuliahController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -34,6 +35,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Dosen Sync & CRUD
     Route::post('dosen/sync', [DosenController::class, 'sync'])->name('dosen.sync');
     Route::resource('dosen', DosenController::class);
+    Route::resource('mata-kuliah', MataKuliahController::class);
 
     Route::get('/api/prodi-by-pt/{id_perguruan_tinggi}', [RiwayatPendidikanMahasiswaController::class, 'getProdiByPt'])
         ->name('api.prodi-by-pt');

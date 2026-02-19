@@ -1,55 +1,62 @@
 @if(session('success') || session('error') || session('warning') || session('info'))
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // Toast Configuration
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true,
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
-                }
-            });
-
             // Success Message
             @if(session('success'))
-                Toast.fire({
+                Swal.fire({
                     icon: 'success',
-                    title: "{{ session('success') }}"
+                    title: 'Berhasil!',
+                    text: "{{ session('success') }}",
+                    customClass: {
+                        confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                    buttonsStyling: false
                 });
             @endif
 
             // Error Message
             @if(session('error'))
-                Toast.fire({
+                Swal.fire({
                     icon: 'error',
-                    title: "{{ session('error') }}"
+                    title: 'Gagal!',
+                    text: "{{ session('error') }}",
+                    customClass: {
+                        confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                    buttonsStyling: false
                 });
             @endif
 
             // Warning Message
             @if(session('warning'))
-                Toast.fire({
+                Swal.fire({
                     icon: 'warning',
-                    title: "{{ session('warning') }}"
+                    title: 'Peringatan!',
+                    text: "{{ session('warning') }}",
+                    customClass: {
+                        confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                    buttonsStyling: false
                 });
             @endif
 
             // Info Message
             @if(session('info'))
-                Toast.fire({
+                Swal.fire({
                     icon: 'info',
-                    title: "{{ session('info') }}"
+                    title: 'Info',
+                    text: "{{ session('info') }}",
+                    customClass: {
+                        confirmButton: 'btn btn-primary waves-effect waves-light'
+                    },
+                    buttonsStyling: false
                 });
             @endif
             });
     </script>
 @endif
 
-{{-- Optional: Handle Global Validation Errors --}}
+{{-- Handle Validation Errors --}}
 @if($errors->any())
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -57,13 +64,16 @@
                 icon: 'error',
                 title: 'Validasi Gagal',
                 html: `
-                        <ul style="text-align: left;">
+                        <ul style="text-align: left;" class="mb-0">
                             @foreach($errors->all() as $error)
                                 <li>{{ $error }}</li>
                             @endforeach
                         </ul>
                     `,
-                confirmButtonText: 'OK'
+                customClass: {
+                    confirmButton: 'btn btn-primary waves-effect waves-light'
+                },
+                buttonsStyling: false
             });
         });
     </script>

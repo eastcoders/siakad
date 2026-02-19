@@ -149,4 +149,58 @@ class AkademikRefService extends NeoFeederService
             'offset' => $offset,
         ]);
     }
+
+    /**
+     * Mengambil jumlah data Mata Kuliah.
+     *
+     * @param string $filter
+     * @return int
+     * @throws \Exception
+     */
+    public function getCountMataKuliah(string $filter = ''): int
+    {
+        $response = $this->sendRequest('GetCountMataKuliah', [
+            'filter' => $filter,
+        ]);
+
+        return (int) $response;
+    }
+
+    /**
+     * Mengambil detail Mata Kuliah berdasarkan ID Matkul.
+     *
+     * @param string $idMatkul
+     * @return array
+     * @throws \Exception
+     */
+    public function getDetailMataKuliah(string $idMatkul = '', string $filter = '', int $limit = 0, int $offset = 0): array
+    {
+        // Jika ada ID Matkul, tambahkan ke filter
+        if (!empty($idMatkul)) {
+            $idFilter = "id_matkul='{$idMatkul}'";
+            $filter = empty($filter) ? $idFilter : "$filter AND $idFilter";
+        }
+
+        $params = [
+            'filter' => $filter,
+            'limit' => $limit,
+            'offset' => $offset,
+        ];
+
+        return $this->sendRequest('GetDetailMataKuliah', $params);
+    }
+
+    /**
+     * Mengambil dictionary data.
+     *
+     * @param string $fungsi
+     * @return array
+     * @throws \Exception
+     */
+    public function getDictionary(string $fungsi): array
+    {
+        return $this->sendRequest('GetDictionary', [
+            'fungsi' => $fungsi,
+        ]);
+    }
 }

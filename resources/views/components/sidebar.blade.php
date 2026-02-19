@@ -94,5 +94,11 @@
         <li class="menu-header mt-5 small text-uppercase">
             <span class="menu-header-text">Perkuliahan</span>
         </li>
+        <li class="menu-item {{ request()->routeIs('admin.mata-kuliah.*') ? 'active' : '' }}">
+            <a href="{{ route('admin.mata-kuliah.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons ri-book-read-line"></i>
+                <div data-i18n="Mata Kuliah">Mata Kuliah</div>
+            </a>
+        </li>
     </ul>
 </aside>
