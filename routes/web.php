@@ -2,9 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DosenController;
+use App\Http\Controllers\KurikulumController;
 use App\Http\Controllers\MahasiswaController;
-use App\Http\Controllers\RiwayatPendidikanMahasiswaController;
 use App\Http\Controllers\MataKuliahController;
+use App\Http\Controllers\RiwayatPendidikanMahasiswaController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -35,7 +36,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Dosen Sync & CRUD
     Route::post('dosen/sync', [DosenController::class, 'sync'])->name('dosen.sync');
     Route::resource('dosen', DosenController::class);
+    // Mata Kuliah
     Route::resource('mata-kuliah', MataKuliahController::class);
+
+    // Kurikulum
+    Route::post('kurikulum/sync', [KurikulumController::class, 'sync'])->name('kurikulum.sync');
+    Route::post('kurikulum/{id}/matkul', [KurikulumController::class, 'storeMatkul'])->name('kurikulum.matkul.store');
+    Route::delete('kurikulum/{id}/matkul/{id_matkul}', [KurikulumController::class, 'destroyMatkul'])->name('kurikulum.matkul.destroy');
+    Route::resource('kurikulum', KurikulumController::class);
 
     Route::get('/api/prodi-by-pt/{id_perguruan_tinggi}', [RiwayatPendidikanMahasiswaController::class, 'getProdiByPt'])
         ->name('api.prodi-by-pt');

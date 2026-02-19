@@ -100,5 +100,12 @@
                 <div data-i18n="Mata Kuliah">Mata Kuliah</div>
             </a>
         </li>
+
+        <li class="menu-item {{ request()->routeIs('admin.kurikulum.*') ? 'active' : '' }}">
+            <a href="{{ route('admin.kurikulum.index') }}" class="menu-link">
+                <i class="menu-icon tf-icons ri-book-open-line"></i>
+                <div data-i18n="Kurikulum">Kurikulum</div>
+            </a>
+        </li>
     </ul>
 </aside>

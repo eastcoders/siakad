@@ -150,6 +150,15 @@ class AkademikRefService extends NeoFeederService
         ]);
     }
 
+    public function getCountKurikulum(string $filter = ''): int
+    {
+        $response = $this->sendRequest('GetCountKurikulum', [
+            'filter' => $filter,
+        ]);
+
+        return (int) ($response['total'] ?? $response);
+    }
+
     /**
      * Mengambil jumlah data Mata Kuliah.
      *

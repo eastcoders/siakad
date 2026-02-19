@@ -16,6 +16,12 @@ class MataKuliah extends Model
         return $this->belongsTo(ProgramStudi::class, 'id_prodi', 'id_prodi');
     }
 
+    public function kurikulum()
+    {
+        return $this->belongsToMany(Kurikulum::class, 'matkul_kurikulums', 'id_matkul', 'id_kurikulum', 'id_matkul', 'id_kurikulum')
+            ->withPivot(['semester', 'sks_mata_kuliah', 'apakah_wajib']);
+    }
+
     protected $fillable = [
         'id_matkul',
         'id_prodi',
