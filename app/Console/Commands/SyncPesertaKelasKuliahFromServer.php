@@ -12,17 +12,20 @@ use Illuminate\Support\Facades\Log;
 class SyncPesertaKelasKuliahFromServer extends Command
 {
     protected $signature = 'sync:peserta-kelas-kuliah-from-server
-        {--limit=100 : Limit peserta per batch API call}
+        {--limit=100 : Limit data per batch API call}
         {--semester= : Filter berdasarkan id_semester (opsional)}
         {--kelas= : Sync hanya untuk id_kelas_kuliah tertentu (UUID)}
-        {--chunk=50 : Jumlah kelas kuliah diproses per chunk DB}';
+        {--chunk=50 : Jumlah kelas kuliah diproses per chunk DB}
+        {--skip-nilai : Skip sinkronisasi nilai (hanya sync peserta)}';
 
-    protected $description = 'Sinkronisasi data Peserta Kelas Kuliah (KRS) dari Neo Feeder Server';
+    protected $description = 'Sinkronisasi data Peserta Kelas Kuliah (KRS) beserta Nilai dari Neo Feeder Server';
 
     public function handle(AkademikRefService $akademikService): int
     {
+        $withNilai = !$this->option('skip-nilai');
+
         $this->info('═══════════════════════════════════════════════════');
-        $this->info('  Sync Peserta Kelas Kuliah dari Server');
+        $this->info('  Sync Peserta Kelas Kuliah' . ($withNilai ? ' + Nilai' : '') . ' dari Server');
         $this->info('═══════════════════════════════════════════════════');
         $this->newLine();
 
@@ -31,12 +34,15 @@ class SyncPesertaKelasKuliahFromServer extends Command
         $chunkSize = (int) $this->option('chunk');
 
         // Counters
-        $totalKelas = 0;
-        $totalPeserta = 0;
-        $createdCount = 0;
-        $updatedCount = 0;
-        $failedKelas = 0;
-        $failedPeserta = 0;
+        $stats = [
+            'totalKelas' => 0,
+            'failedKelas' => 0,
+            'pesertaCreated' => 0,
+            'pesertaUpdated' => 0,
+            'pesertaFailed' => 0,
+            'nilaiUpdated' => 0,
+            'nilaiFailed' => 0,
+        ];
 
         try {
             // ─── 1. Query kelas_kuliah yang sudah synced dari server ──
@@ -60,7 +66,7 @@ class SyncPesertaKelasKuliahFromServer extends Command
                 return Command::SUCCESS;
             }
 
-            $this->info("📦 Memproses peserta dari {$kelasCount} kelas kuliah...");
+            $this->info("📦 Memproses peserta" . ($withNilai ? ' + nilai' : '') . " dari {$kelasCount} kelas kuliah...");
             $this->newLine();
 
             $bar = $this->output->createProgressBar($kelasCount);
@@ -69,26 +75,38 @@ class SyncPesertaKelasKuliahFromServer extends Command
             $bar->start();
 
             // ─── 2. Chunk kelas kuliah untuk efisiensi memori ──
-            $query->chunk($chunkSize, function ($kelasChunk) use ($akademikService, $batchSize, $bar, &$totalKelas, &$totalPeserta, &$createdCount, &$updatedCount, &$failedKelas, &$failedPeserta) {
+            $query->chunk($chunkSize, function ($kelasChunk) use ($akademikService, $batchSize, $bar, $withNilai, &$stats) {
                 foreach ($kelasChunk as $kelas) {
-                    $totalKelas++;
+                    $stats['totalKelas']++;
                     $bar->setMessage("Kelas: {$kelas->nama_kelas_kuliah}");
 
                     try {
+                        // Step A: Sync peserta
                         [$created, $updated, $failed] = $this->syncPesertaForKelas(
                             $akademikService,
                             $kelas->id_kelas_kuliah,
                             $batchSize
                         );
 
-                        $totalPeserta += $created + $updated;
-                        $createdCount += $created;
-                        $updatedCount += $updated;
-                        $failedPeserta += $failed;
+                        $stats['pesertaCreated'] += $created;
+                        $stats['pesertaUpdated'] += $updated;
+                        $stats['pesertaFailed'] += $failed;
+
+                        // Step B: Sync nilai (merge langsung setelah peserta)
+                        if ($withNilai) {
+                            [$nilaiUpdated, $nilaiFailed] = $this->syncNilaiForKelas(
+                                $akademikService,
+                                $kelas->id_kelas_kuliah,
+                                $batchSize
+                            );
+
+                            $stats['nilaiUpdated'] += $nilaiUpdated;
+                            $stats['nilaiFailed'] += $nilaiFailed;
+                        }
 
                     } catch (\Exception $e) {
-                        $failedKelas++;
-                        Log::error("Gagal sync peserta kelas [{$kelas->nama_kelas_kuliah}]: " . $e->getMessage());
+                        $stats['failedKelas']++;
+                        Log::error("Gagal sync kelas [{$kelas->nama_kelas_kuliah}]: " . $e->getMessage());
                     }
 
                     $bar->advance();
@@ -107,17 +125,22 @@ class SyncPesertaKelasKuliahFromServer extends Command
             $this->info('═══════════════════════════════════════════════════');
             $this->newLine();
 
-            $this->table(
-                ['Keterangan', 'Jumlah'],
-                [
-                    ['Kelas Kuliah Diproses', $totalKelas],
-                    ['Kelas Gagal', $failedKelas],
-                    ['Total Peserta Sinkron', $totalPeserta],
-                    ['Baru (Created)', $createdCount],
-                    ['Diperbarui (Updated)', $updatedCount],
-                    ['Peserta Gagal', $failedPeserta],
-                ]
-            );
+            $rows = [
+                ['Kelas Kuliah Diproses', $stats['totalKelas']],
+                ['Kelas Gagal', $stats['failedKelas']],
+                ['─── Peserta ───', ''],
+                ['Peserta Baru (Created)', $stats['pesertaCreated']],
+                ['Peserta Diperbarui (Updated)', $stats['pesertaUpdated']],
+                ['Peserta Gagal', $stats['pesertaFailed']],
+            ];
+
+            if ($withNilai) {
+                $rows[] = ['─── Nilai ───', ''];
+                $rows[] = ['Nilai Diperbarui', $stats['nilaiUpdated']];
+                $rows[] = ['Nilai Gagal', $stats['nilaiFailed']];
+            }
+
+            $this->table(['Keterangan', 'Jumlah'], $rows);
 
             return Command::SUCCESS;
 
@@ -130,8 +153,7 @@ class SyncPesertaKelasKuliahFromServer extends Command
     }
 
     /**
-     * Sync semua peserta untuk satu kelas kuliah.
-     * Menggunakan batch API + upsert DB untuk performa.
+     * Sync peserta untuk satu kelas kuliah via GetPesertaKelasKuliah.
      *
      * @return array [created, updated, failed]
      */
@@ -153,7 +175,6 @@ class SyncPesertaKelasKuliahFromServer extends Command
                 break;
             }
 
-            // Batch upsert untuk performa
             $upsertData = [];
             $now = now();
 
@@ -170,6 +191,7 @@ class SyncPesertaKelasKuliahFromServer extends Command
                     $upsertData[] = [
                         'id_kelas_kuliah' => $idKelasKuliah,
                         'id_registrasi_mahasiswa' => $idRegistrasi,
+                        'nilai_angka' => isset($item['nilai_angka']) && $item['nilai_angka'] !== '' ? (float) $item['nilai_angka'] : null,
                         'nilai_akhir' => isset($item['nilai_akhir']) && $item['nilai_akhir'] !== '' ? (float) $item['nilai_akhir'] : null,
                         'nilai_huruf' => $item['nilai_huruf'] ?? null,
                         'nilai_indeks' => isset($item['nilai_indeks']) && $item['nilai_indeks'] !== '' ? (float) $item['nilai_indeks'] : null,
@@ -187,14 +209,13 @@ class SyncPesertaKelasKuliahFromServer extends Command
                 }
             }
 
-            // Upsert batch — update jika composite key sudah ada
             if (!empty($upsertData)) {
                 $beforeCount = PesertaKelasKuliah::where('id_kelas_kuliah', $idKelasKuliah)->count();
 
                 DB::table('peserta_kelas_kuliah')->upsert(
                     $upsertData,
-                    ['id_kelas_kuliah', 'id_registrasi_mahasiswa'], // unique key
-                    ['nilai_akhir', 'nilai_huruf', 'nilai_indeks', 'sumber_data', 'status_sinkronisasi', 'is_deleted_server', 'last_synced_at', 'updated_at']
+                    ['id_kelas_kuliah', 'id_registrasi_mahasiswa'],
+                    ['nilai_angka', 'nilai_akhir', 'nilai_huruf', 'nilai_indeks', 'sumber_data', 'status_sinkronisasi', 'is_deleted_server', 'last_synced_at', 'updated_at']
                 );
 
                 $afterCount = PesertaKelasKuliah::where('id_kelas_kuliah', $idKelasKuliah)->count();
@@ -203,7 +224,6 @@ class SyncPesertaKelasKuliahFromServer extends Command
                 $updated += (count($upsertData) - $failed - $newRecords);
             }
 
-            // Halaman terakhir jika data < batch size
             if (count($data) < $batchSize) {
                 break;
             }
@@ -213,4 +233,79 @@ class SyncPesertaKelasKuliahFromServer extends Command
 
         return [$created, $updated, $failed];
     }
+
+    /**
+     * Sync nilai untuk satu kelas kuliah via GetDetailNilaiPerkuliahanKelas.
+     * Update kolom nilai di peserta_kelas_kuliah yang sudah ada.
+     *
+     * CATATAN:
+     * - GetListNilaiPerkuliahanKelas → kelas-level summary (jumlah_mahasiswa, nama_kelas, etc.)
+     * - GetDetailNilaiPerkuliahanKelas → per-student grades (id_registrasi_mahasiswa, nilai_angka, etc.)
+     *
+     * @return array [updated, failed]
+     */
+    private function syncNilaiForKelas(
+        AkademikRefService $akademikService,
+        string $idKelasKuliah,
+        int $batchSize
+    ): array {
+        $updated = 0;
+        $failed = 0;
+        $filter = "id_kelas_kuliah='{$idKelasKuliah}'";
+
+        try {
+            $data = $akademikService->getDetailNilaiPerkuliahanKelas($filter);
+        } catch (\Exception $e) {
+            Log::warning("GetDetailNilaiPerkuliahanKelas gagal untuk kelas [{$idKelasKuliah}]: " . $e->getMessage());
+            return [0, 1];
+        }
+
+        if (empty($data)) {
+            return [0, 0];
+        }
+
+        $now = now();
+
+        foreach ($data as $item) {
+            try {
+                $idRegistrasi = $item['id_registrasi_mahasiswa'] ?? null;
+
+                if (empty($idRegistrasi)) {
+                    continue;
+                }
+
+                $nilaiAngka = isset($item['nilai_angka']) && $item['nilai_angka'] !== '' ? (float) $item['nilai_angka'] : null;
+                $nilaiHuruf = $item['nilai_huruf'] ?? null;
+                $nilaiIndeks = isset($item['nilai_indeks']) && $item['nilai_indeks'] !== '' ? (float) $item['nilai_indeks'] : null;
+                $nilaiAkhir = isset($item['nilai_akhir']) && $item['nilai_akhir'] !== '' ? (float) $item['nilai_akhir'] : null;
+
+                // Skip jika semua nilai null
+                if (is_null($nilaiAngka) && is_null($nilaiHuruf) && is_null($nilaiIndeks) && is_null($nilaiAkhir)) {
+                    continue;
+                }
+
+                $affected = DB::table('peserta_kelas_kuliah')
+                    ->where('id_kelas_kuliah', $idKelasKuliah)
+                    ->where('id_registrasi_mahasiswa', $idRegistrasi)
+                    ->update([
+                        'nilai_angka' => $nilaiAngka,
+                        'nilai_akhir' => $nilaiAkhir,
+                        'nilai_huruf' => $nilaiHuruf,
+                        'nilai_indeks' => $nilaiIndeks,
+                        'last_synced_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+
+                if ($affected > 0) {
+                    $updated++;
+                }
+            } catch (\Exception $e) {
+                $failed++;
+                Log::error("Gagal update nilai [{$idKelasKuliah}]: " . $e->getMessage());
+            }
+        }
+
+        return [$updated, $failed];
+    }
 }
+

@@ -340,5 +340,29 @@ class AkademikRefService extends NeoFeederService
             'filter' => $filter,
         ]);
     }
+
+    // ─── Skala Nilai Prodi ────────────────────────────────
+
+    /**
+     * Mengambil daftar skala nilai prodi (summary per prodi).
+     */
+    public function getListSkalaNilaiProdi(string $filter = ''): array
+    {
+        return $this->sendRequest('GetListSkalaNilaiProdi', [
+            'filter' => $filter,
+            'order' => '',
+        ]);
+    }
+
+    /**
+     * Mengambil detail skala nilai prodi (per-item: nilai_huruf, bobot, dll).
+     */
+    public function getDetailSkalaNilaiProdi(string $filter = ''): array
+    {
+        return $this->sendRequest('GetDetailSkalaNilaiProdi', [
+            'filter' => $filter,
+            'order' => '',
+        ]);
+    }
 }
 
