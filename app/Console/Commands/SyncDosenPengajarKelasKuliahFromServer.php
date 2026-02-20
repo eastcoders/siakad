@@ -55,7 +55,7 @@ class SyncDosenPengajarKelasKuliahFromServer extends Command
             // ─── 1. Build lookup cache registrasi → id_dosen lokal dengan validasi ──
             $this->info('🔗 Membangun cache registrasi dosen dengan validasi...');
             $this->buildRegistrasiDosenMap();
-            $this->info('   ✓ '.count($this->registrasiDosenMap).' registrasi dosen di-cache.');
+            $this->info('   ✓ ' . count($this->registrasiDosenMap) . ' registrasi dosen di-cache.');
             if ($this->mappingDuplicatesCount > 0) {
                 $this->warn("   ⚠ Ditemukan {$this->mappingDuplicatesCount} duplikasi external_id (menggunakan mapping pertama).");
             }
@@ -113,7 +113,7 @@ class SyncDosenPengajarKelasKuliahFromServer extends Command
 
                     } catch (\Exception $e) {
                         $failedKelas++;
-                        Log::error("Gagal sync dosen pengajar kelas [{$kelas->nama_kelas_kuliah}]: ".$e->getMessage());
+                        Log::error("Gagal sync dosen pengajar kelas [{$kelas->nama_kelas_kuliah}]: " . $e->getMessage());
                     }
 
                     $bar->advance();
@@ -156,8 +156,8 @@ class SyncDosenPengajarKelasKuliahFromServer extends Command
 
         } catch (\Exception $e) {
             $this->newLine();
-            $this->error('Terjadi kesalahan fatal: '.$e->getMessage());
-            Log::error('Fatal SyncDosenPengajarKK Error: '.$e->getMessage());
+            $this->error('Terjadi kesalahan fatal: ' . $e->getMessage());
+            Log::error('Fatal SyncDosenPengajarKK Error: ' . $e->getMessage());
 
             return Command::FAILURE;
         }
@@ -199,7 +199,7 @@ class SyncDosenPengajarKelasKuliahFromServer extends Command
                 }
             });
 
-        if (! empty($duplicates)) {
+        if (!empty($duplicates)) {
             Log::warning('Total duplikasi external_id ditemukan saat build mapping', [
                 'count' => count($duplicates),
                 'duplicates' => $duplicates,
@@ -260,7 +260,7 @@ class SyncDosenPengajarKelasKuliahFromServer extends Command
                     }
 
                     // ─── Validasi id_registrasi_dosen ada di mapping ────────
-                    if (! isset($this->registrasiDosenMap[$idRegistrasiDosen])) {
+                    if (!isset($this->registrasiDosenMap[$idRegistrasiDosen])) {
                         $unmatched++;
                         Log::warning('Registrasi dosen tidak ditemukan di mapping lokal', [
                             'id_registrasi_dosen' => $idRegistrasiDosen,

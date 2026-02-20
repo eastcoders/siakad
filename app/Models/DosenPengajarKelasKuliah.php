@@ -135,6 +135,6 @@ class DosenPengajarKelasKuliah extends Model
      */
     public function isUsingAlias(): bool
     {
-        return ! is_null($this->id_dosen_alias);
+        return !is_null($this->id_dosen_alias);
     }
 }
