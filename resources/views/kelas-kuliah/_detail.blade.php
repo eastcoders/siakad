@@ -79,19 +79,17 @@
         <h5 class="mb-0">Kelas Kuliah</h5>
         <div class="d-flex gap-2">
             @if (!$isEditMode)
-                @if ($kelasKuliah->sumber_data === 'lokal')
-                    <a href="{{ route('admin.kelas-kuliah.edit', $kelasKuliah->id) }}" class="btn btn-warning btn-sm">
-                        <i class="ri-pencil-line me-1"></i> Edit
-                    </a>
-                    <form action="{{ route('admin.kelas-kuliah.destroy', $kelasKuliah->id) }}" method="POST"
-                        class="d-inline">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger btn-sm">
-                            <i class="ri-delete-bin-line me-1"></i> Hapus
-                        </button>
-                    </form>
-                @endif
+                <a href="{{ route('admin.kelas-kuliah.edit', $kelasKuliah->id) }}" class="btn btn-warning btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Edit
+                </a>
+                <form action="{{ route('admin.kelas-kuliah.destroy', $kelasKuliah->id) }}" method="POST"
+                    class="d-inline" onsubmit="return confirm('Yakin ingin menghapus kelas kuliah ini?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="ri-delete-bin-line me-1"></i> Hapus
+                    </button>
+                </form>
                 <a href="{{ route('admin.kelas-kuliah.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="ri-list-check me-1"></i> Daftar
                 </a>

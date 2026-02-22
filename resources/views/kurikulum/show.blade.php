@@ -22,19 +22,17 @@
                 <a href="{{ route('admin.kurikulum.create') }}" class="btn btn-primary btn-sm">
                     <i class="ri-add-line me-1"></i> Tambah
                 </a>
-                @if($kurikulum->sumber_data == 'lokal')
-                    <a href="{{ route('admin.kurikulum.edit', $kurikulum->id) }}" class="btn btn-warning btn-sm">
-                        <i class="ri-pencil-line me-1"></i> Ubah
-                    </a>
-                    <form action="{{ route('admin.kurikulum.destroy', $kurikulum->id) }}" method="POST" class="d-inline"
-                        onsubmit="return confirm('Yakin ingin menghapus data ini?');">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger btn-sm">
-                            <i class="ri-delete-bin-line me-1"></i> Hapus
-                        </button>
-                    </form>
-                @endif
+                <a href="{{ route('admin.kurikulum.edit', $kurikulum->id) }}" class="btn btn-warning btn-sm">
+                    <i class="ri-pencil-line me-1"></i> Ubah
+                </a>
+                <form action="{{ route('admin.kurikulum.destroy', $kurikulum->id) }}" method="POST" class="d-inline"
+                    onsubmit="return confirm('Yakin ingin menghapus data ini?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="ri-delete-bin-line me-1"></i> Hapus
+                    </button>
+                </form>
                 <a href="{{ route('admin.kurikulum.index') }}" class="btn btn-success btn-sm">
                     <i class="ri-list-check me-1"></i> Daftar
                 </a>
@@ -106,14 +104,12 @@
                     <button class="btn btn-info text-white me-1 disabled">
                         <i class="ri-file-copy-line me-1"></i> SALIN MATAKULIAH
                     </button>
-                    @if($kurikulum->sumber_data == 'lokal')
-                        <button class="btn btn-warning text-white me-1 disabled">
-                            <i class="ri-edit-2-line me-1"></i> EDIT KOLEKTIF MATAKULIAH
-                        </button>
-                        <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#modalTambahMatkul">
-                            <i class="ri-add-line me-1"></i> TAMBAH MATAKULIAH
-                        </button>
-                    @endif
+                    <button class="btn btn-warning text-white me-1 disabled">
+                        <i class="ri-edit-2-line me-1"></i> EDIT KOLEKTIF MATAKULIAH
+                    </button>
+                    <button class="btn btn-info text-white" data-bs-toggle="modal" data-bs-target="#modalTambahMatkul">
+                        <i class="ri-add-line me-1"></i> TAMBAH MATAKULIAH
+                    </button>
                 </div>
             </div>
 
@@ -139,24 +135,21 @@
                         @foreach($kurikulum->matakuliah as $index => $mk)
                             <tr>
                                 <td>
-                                    @if($kurikulum->sumber_data == 'lokal')
-                                        <form
-                                            action="{{ route('admin.kurikulum.matkul.destroy', ['id' => $kurikulum->id, 'id_matkul' => $mk->id_matkul]) }}"
-                                            method="POST" onsubmit="return confirm('Hapus mata kuliah ini dari kurikulum?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-icon btn-sm btn-danger">
-                                                <i class="ri-delete-bin-line"></i>
-                                            </button>
-                                        </form>
-                                    @endif
+                                    <form
+                                        action="{{ route('admin.kurikulum.matkul.destroy', ['id' => $kurikulum->id, 'id_matkul' => $mk->id_matkul]) }}"
+                                        method="POST" onsubmit="return confirm('Hapus mata kuliah ini dari kurikulum?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-icon btn-sm btn-danger">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
                                 </td>
                                 <td>
                                     @if($mk->pivot->status_sinkronisasi == 'synced')
-                                        <span class="badge bg-success rounded-pill"><i class="ri-check-line me-1"></i> sudah
-                                            sync</span>
+                                        <span class="badge bg-label-success rounded-pill">sudah sync</span>
                                     @else
-                                        <span class="badge bg-warning rounded-pill">belum sync</span>
+                                        <span class="badge bg-label-warning rounded-pill">belum sync</span>
                                     @endif
                                 </td>
                                 <td>{{ $index + 1 }}</td>

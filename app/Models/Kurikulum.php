@@ -27,7 +27,17 @@ class Kurikulum extends Model
         'jumlah_sks_lulus' => 'integer',
         'jumlah_sks_wajib' => 'integer',
         'jumlah_sks_pilihan' => 'integer',
+        'is_local_change' => 'boolean',
+        'is_deleted_local' => 'boolean',
     ];
+
+    protected static function booted()
+    {
+        static::addGlobalScope('sync_active', function ($builder) {
+            $builder->where('is_deleted_local', false)
+                ->where('is_deleted_server', false);
+        });
+    }
 
     /**
      * Relationship to Program Studi

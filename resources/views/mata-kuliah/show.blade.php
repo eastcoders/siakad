@@ -115,11 +115,9 @@
             <a href="{{ route('admin.mata-kuliah.index') }}" class="btn btn-outline-secondary">
                 <i class="ri-arrow-left-line me-1"></i> Kembali
             </a>
-            @if($mataKuliah->sumber_data == 'lokal')
-                <a href="{{ route('admin.mata-kuliah.edit', $mataKuliah->id) }}" class="btn btn-warning">
-                    <i class="ri-pencil-line me-1"></i> Edit
-                </a>
-            @endif
+            <a href="{{ route('admin.mata-kuliah.edit', $mataKuliah->id) }}" class="btn btn-warning">
+                <i class="ri-pencil-line me-1"></i> Edit
+            </a>
         </div>
     </div>
 @endsection

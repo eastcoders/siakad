@@ -48,23 +48,21 @@
                                         <i class="ri-eye-line"></i>
                                     </a>
 
-                                    {{-- Edit & Delete (Only for Lokal) --}}
-                                    @if ($item->sumber_data == 'lokal')
-                                        <a href="{{ route('admin.mata-kuliah.edit', $item->id) }}"
-                                            class="btn btn-icon btn-sm btn-warning rounded-pill" title="Edit">
-                                            <i class="ri-pencil-line"></i>
-                                        </a>
+                                    {{-- Edit & Delete (Available for All) --}}
+                                    <a href="{{ route('admin.mata-kuliah.edit', $item->id) }}"
+                                        class="btn btn-icon btn-sm btn-warning rounded-pill" title="Edit">
+                                        <i class="ri-pencil-line"></i>
+                                    </a>
 
-                                        <form action="{{ route('admin.mata-kuliah.destroy', $item->id) }}" method="POST"
-                                            class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-icon btn-sm btn-danger rounded-pill" title="Hapus"
-                                                onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
-                                                <i class="ri-delete-bin-line"></i>
-                                            </button>
-                                        </form>
-                                    @endif
+                                    <form action="{{ route('admin.mata-kuliah.destroy', $item->id) }}" method="POST"
+                                        class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-icon btn-sm btn-danger rounded-pill" title="Hapus"
+                                            onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                             <td>
@@ -76,23 +74,37 @@
                                         $statusClass = 'bg-label-danger';
                                         $statusText = 'Dihapus Server';
                                     } else {
-                                        switch ($item->status_sinkronisasi) {
-                                            case 'synced':
-                                                $statusClass = 'bg-label-success';
-                                                $statusText = 'Sudah Sync';
-                                                break;
-                                            case 'created_local':
-                                                $statusClass = 'bg-label-info';
-                                                $statusText = 'Lokal';
-                                                break;
-                                            case 'updated_local':
-                                                $statusClass = 'bg-label-warning';
-                                                $statusText = 'Update Lokal';
-                                                break;
-                                            case 'pending_push':
-                                                $statusClass = 'bg-label-secondary';
-                                                $statusText = 'Pending Push';
-                                                break;
+                                        if ($item->sumber_data === 'server' && $item->status_sinkronisasi === 'synced') {
+                                            $statusClass = 'bg-label-success';
+                                            $statusText = 'Server (Synced)';
+                                        } elseif ($item->sumber_data === 'lokal' && $item->status_sinkronisasi === 'created_local') {
+                                            $statusClass = 'bg-label-warning';
+                                            $statusText = 'Lokal (Belum Push)';
+                                        } elseif ($item->sumber_data === 'server' && $item->status_sinkronisasi === 'updated_local') {
+                                            $statusClass = 'bg-label-info';
+                                            $statusText = 'Server (Update Lokal)';
+                                        } elseif ($item->status_sinkronisasi === 'push_failed') {
+                                            $statusClass = 'bg-label-danger';
+                                            $statusText = 'Gagal Push';
+                                        } else {
+                                            switch ($item->status_sinkronisasi) {
+                                                case 'synced':
+                                                    $statusClass = 'bg-label-success';
+                                                    $statusText = 'Sudah Sync';
+                                                    break;
+                                                case 'created_local':
+                                                    $statusClass = 'bg-label-info';
+                                                    $statusText = 'Lokal';
+                                                    break;
+                                                case 'updated_local':
+                                                    $statusClass = 'bg-label-warning';
+                                                    $statusText = 'Update Lokal';
+                                                    break;
+                                                case 'pending_push':
+                                                    $statusClass = 'bg-label-secondary';
+                                                    $statusText = 'Pending Push';
+                                                    break;
+                                            }
                                         }
                                     }
                                 @endphp

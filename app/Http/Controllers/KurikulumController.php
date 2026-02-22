@@ -21,7 +21,7 @@ class KurikulumController extends Controller
     public function create()
     {
         $prodis = \App\Models\ProgramStudi::orderBy('nama_program_studi')->get();
-        $semesters = \App\Models\Semester::where('a_periode_aktif', 1)->orderBy('id_semester', 'desc')->take(20)->get();
+        $semesters = \App\Models\Semester::where('a_periode_aktif', 1)->orderBy('id_semester', 'desc')->get();
         return view('kurikulum.create', compact('prodis', 'semesters'));
     }
 
@@ -33,11 +33,13 @@ class KurikulumController extends Controller
         try {
             $data = $request->validated();
 
-            // Set default values for local data
             $data['id_kurikulum'] = \Illuminate\Support\Str::uuid();
             $data['sumber_data'] = 'lokal';
             $data['status_sinkronisasi'] = 'created_local';
+            $data['sync_action'] = 'insert';
+            $data['is_local_change'] = true;
             $data['is_deleted_server'] = false;
+            $data['is_deleted_local'] = false;
 
             \App\Models\Kurikulum::create($data);
 
@@ -68,10 +70,8 @@ class KurikulumController extends Controller
     {
         try {
             $kurikulum = \App\Models\Kurikulum::findOrFail($id);
+            // Allowed to add matkul locally based on Offline-First
 
-            if ($kurikulum->sumber_data != 'lokal') {
-                return redirect()->back()->with('error', 'Tidak dapat mengubah kurikulum dari server.');
-            }
 
             $request->validate([
                 'id_matkul' => 'required|exists:mata_kuliahs,id_matkul',
@@ -109,10 +109,8 @@ class KurikulumController extends Controller
     {
         try {
             $kurikulum = \App\Models\Kurikulum::findOrFail($id);
+            // Allowed to remove matkul locally based on Offline-First
 
-            if ($kurikulum->sumber_data != 'lokal') {
-                return redirect()->back()->with('error', 'Tidak dapat menghapus data dari kurikulum server.');
-            }
 
             $kurikulum->matakuliah()->detach($id_matkul);
 
@@ -129,14 +127,10 @@ class KurikulumController extends Controller
     public function edit($id)
     {
         $kurikulum = \App\Models\Kurikulum::findOrFail($id);
-
-        if ($kurikulum->sumber_data != 'lokal') {
-            return redirect()->route('admin.kurikulum.index')
-                ->with('error', 'Data dari server tidak dapat diubah.');
-        }
+        // Allowed to edit locally
 
         $prodis = \App\Models\ProgramStudi::orderBy('nama_program_studi')->get();
-        $semesters = \App\Models\Semester::where('a_periode_aktif', 1)->orderBy('id_semester', 'desc')->take(20)->get();
+        $semesters = \App\Models\Semester::orderBy('id_semester', 'desc')->get();
 
         return view('kurikulum.edit', compact('kurikulum', 'prodis', 'semesters'));
     }
@@ -149,13 +143,26 @@ class KurikulumController extends Controller
         try {
             $kurikulum = \App\Models\Kurikulum::findOrFail($id);
 
-            if ($kurikulum->sumber_data != 'lokal') {
-                return redirect()->route('admin.kurikulum.index')
-                    ->with('error', 'Data dari server tidak dapat diubah.');
-            }
+            // Allowed to edit locally
 
             $data = $request->validated();
-            $data['status_sinkronisasi'] = 'updated_local'; // Mark as updated
+
+            $isSyncedBefore = in_array($kurikulum->status_sinkronisasi, [
+                \App\Models\Kurikulum::STATUS_SYNCED,
+                \App\Models\Kurikulum::STATUS_PUSH_SUCCESS,
+            ], true);
+
+            if ($kurikulum->sumber_data === 'server') {
+                $data['status_sinkronisasi'] = \App\Models\Kurikulum::STATUS_UPDATED_LOCAL;
+                $data['sync_action'] = 'update';
+                $data['is_local_change'] = true;
+            } else {
+                if ($isSyncedBefore) {
+                    $data['status_sinkronisasi'] = \App\Models\Kurikulum::STATUS_UPDATED_LOCAL;
+                    $data['sync_action'] = 'update';
+                }
+                $data['is_local_change'] = true;
+            }
 
             $kurikulum->update($data);
 
@@ -176,12 +183,33 @@ class KurikulumController extends Controller
         try {
             $kurikulum = \App\Models\Kurikulum::findOrFail($id);
 
-            if ($kurikulum->sumber_data != 'lokal') {
-                return redirect()->route('admin.kurikulum.index')
-                    ->with('error', 'Data dari server tidak dapat dihapus.');
-            }
+            if ($kurikulum->sumber_data === 'server') {
+                $kurikulum->update([
+                    'is_deleted_local' => true,
+                    'status_sinkronisasi' => \App\Models\Kurikulum::STATUS_DELETED_LOCAL,
+                    'sync_action' => 'delete',
+                    'is_local_change' => true,
+                ]);
+            } else {
+                $hasEverSynced = $kurikulum->last_push_at !== null
+                    || in_array($kurikulum->status_sinkronisasi, [
+                        \App\Models\Kurikulum::STATUS_SYNCED,
+                        \App\Models\Kurikulum::STATUS_UPDATED_LOCAL,
+                        \App\Models\Kurikulum::STATUS_DELETED_LOCAL,
+                        \App\Models\Kurikulum::STATUS_PUSH_SUCCESS,
+                    ], true);
 
-            $kurikulum->delete();
+                if (!$hasEverSynced) {
+                    $kurikulum->delete();
+                } else {
+                    $kurikulum->update([
+                        'is_deleted_local' => true,
+                        'status_sinkronisasi' => \App\Models\Kurikulum::STATUS_DELETED_LOCAL,
+                        'sync_action' => 'delete',
+                        'is_local_change' => true,
+                    ]);
+                }
+            }
 
             return redirect()->route('admin.kurikulum.index')
                 ->with('success', 'Data Kurikulum berhasil dihapus.');

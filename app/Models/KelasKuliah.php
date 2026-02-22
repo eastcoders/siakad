@@ -60,6 +60,9 @@ class KelasKuliah extends Model
         'last_synced_at',
         'last_push_at',
         'sync_error_message',
+        'sync_action',
+        'is_local_change',
+        'is_deleted_local',
     ];
 
     protected $casts = [
@@ -72,11 +75,21 @@ class KelasKuliah extends Model
         'apa_untuk_pditt' => 'integer',
         'a_selenggara_pditt' => 'integer',
         'is_deleted_server' => 'boolean',
+        'is_local_change' => 'boolean',
+        'is_deleted_local' => 'boolean',
         'last_synced_at' => 'datetime',
         'last_push_at' => 'datetime',
         'tanggal_mulai_efektif' => 'date',
         'tanggal_akhir_efektif' => 'date',
     ];
+
+    protected static function booted()
+    {
+        static::addGlobalScope('active', function ($builder) {
+            $builder->where('is_deleted_local', false)
+                ->where('is_deleted_server', false);
+        });
+    }
 
     // ─── Scopes ─────────────────────────────────────────────
 

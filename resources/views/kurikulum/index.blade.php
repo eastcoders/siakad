@@ -30,7 +30,7 @@
                 </a>
             </div>
         </div>
-        
+
         <div class="card-body">
             <div class="table-responsive text-nowrap">
                 <table class="table table-bordered table-striped table-hover" id="table-kurikulum">
@@ -53,48 +53,72 @@
                                 <td>
                                     <div class="d-flex gap-1">
                                         {{-- View Button --}}
-                                        <a href="{{ route('admin.kurikulum.show', $item->id) }}" class="btn btn-icon btn-sm btn-info rounded-pill" title="Detail">
+                                        <a href="{{ route('admin.kurikulum.show', $item->id) }}"
+                                            class="btn btn-icon btn-sm btn-info rounded-pill" title="Detail">
                                             <i class="ri-eye-line"></i>
                                         </a>
 
-                                        @if($item->sumber_data == 'lokal')
-                                            {{-- Edit Button --}}
-                                            <a href="{{ route('admin.kurikulum.edit', $item->id) }}" class="btn btn-icon btn-sm btn-warning rounded-pill" title="Edit">
-                                                <i class="ri-pencil-line"></i>
-                                            </a>
-                                            {{-- Delete Button --}}
-                                            <form action="{{ route('admin.kurikulum.destroy', $item->id) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button class="btn btn-icon btn-sm btn-danger rounded-pill" title="Hapus" onclick="return confirm('Yakin ingin menghapus?')">
-                                                    <i class="ri-delete-bin-line"></i>
-                                                </button>
-                                            </form>
-                                        @endif
+                                        {{-- Edit Button --}}
+                                        <a href="{{ route('admin.kurikulum.edit', $item->id) }}"
+                                            class="btn btn-icon btn-sm btn-warning rounded-pill" title="Edit">
+                                            <i class="ri-pencil-line"></i>
+                                        </a>
+                                        {{-- Delete Button --}}
+                                        <form action="{{ route('admin.kurikulum.destroy', $item->id) }}" method="POST"
+                                            class="d-inline" onsubmit="return confirm('Yakin ingin menghapus?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-icon btn-sm btn-danger rounded-pill"
+                                                title="Hapus">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                                 <td>
-                                    @switch($item->status_sinkronisasi)
-                                        @case('synced')
-                                            <span class="badge bg-success rounded-pill">
-                                                <i class="ri-check-line me-1"></i> Synced
-                                            </span>
-                                            @break
-                                        @case('created_local')
-                                            <span class="badge bg-info rounded-pill">
-                                                <i class="ri-add-line me-1"></i> Baru (Lokal)
-                                            </span>
-                                            @break
-                                        @case('updated_local')
-                                            <span class="badge bg-warning rounded-pill">
-                                                <i class="ri-edit-line me-1"></i> Diubah (Lokal)
-                                            </span>
-                                            @break
-                                        @default
-                                            <span class="badge bg-secondary rounded-pill">
-                                                {{ $item->status_sinkronisasi }}
-                                            </span>
-                                    @endswitch
+                                    @php
+                                        $statusClass = 'bg-label-secondary';
+                                        $statusText = 'Unknown';
+
+                                        if ($item->is_deleted_server) {
+                                            $statusClass = 'bg-label-danger';
+                                            $statusText = 'Dihapus Server';
+                                        } else {
+                                            if ($item->sumber_data === 'server' && $item->status_sinkronisasi === 'synced') {
+                                                $statusClass = 'bg-label-success';
+                                                $statusText = 'Server (Synced)';
+                                            } elseif ($item->sumber_data === 'lokal' && $item->status_sinkronisasi === 'created_local') {
+                                                $statusClass = 'bg-label-warning';
+                                                $statusText = 'Lokal (Belum Push)';
+                                            } elseif ($item->sumber_data === 'server' && $item->status_sinkronisasi === 'updated_local') {
+                                                $statusClass = 'bg-label-info';
+                                                $statusText = 'Server (Update Lokal)';
+                                            } elseif ($item->status_sinkronisasi === 'push_failed') {
+                                                $statusClass = 'bg-label-danger';
+                                                $statusText = 'Gagal Push';
+                                            } else {
+                                                switch ($item->status_sinkronisasi) {
+                                                    case 'synced':
+                                                        $statusClass = 'bg-label-success';
+                                                        $statusText = 'Sudah Sync';
+                                                        break;
+                                                    case 'created_local':
+                                                        $statusClass = 'bg-label-info';
+                                                        $statusText = 'Lokal';
+                                                        break;
+                                                    case 'updated_local':
+                                                        $statusClass = 'bg-label-warning';
+                                                        $statusText = 'Update Lokal';
+                                                        break;
+                                                    case 'pending_push':
+                                                        $statusClass = 'bg-label-secondary';
+                                                        $statusText = 'Pending Push';
+                                                        break;
+                                                }
+                                            }
+                                        }
+                                    @endphp
+                                    <span class="badge {{ $statusClass }} rounded-pill">{{ $statusText }}</span>
                                 </td>
                                 <td>{{ $loop->iteration }}</td>
                                 <td class="fw-bold">{{ $item->nama_kurikulum }}</td>
@@ -115,7 +139,7 @@
 @push('scripts')
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             $('#table-kurikulum').DataTable({
                 responsive: false,
                 scrollX: false,

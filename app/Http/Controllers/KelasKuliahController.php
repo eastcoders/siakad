@@ -87,14 +87,13 @@ class KelasKuliahController extends Controller
                 // Action Button
                 $btn = '<div class="d-flex gap-1">';
                 $btn .= '<a href="' . route('admin.kelas-kuliah.show', $row->id) . '" class="btn btn-icon btn-sm btn-info rounded-pill" title="Detail"><i class="ri-eye-line"></i></a>';
-                if ($row->sumber_data == 'lokal') {
-                    $btn .= '<a href="' . route('admin.kelas-kuliah.edit', $row->id) . '" class="btn btn-icon btn-sm btn-warning rounded-pill" title="Edit"><i class="ri-pencil-line"></i></a>';
-                    $btn .= '<form action="' . route('admin.kelas-kuliah.destroy', $row->id) . '" method="POST" class="d-inline delete-form">
-                                ' . csrf_field() . '
-                                ' . method_field('DELETE') . '
-                                <button type="button" class="btn btn-icon btn-sm btn-danger rounded-pill btn-delete" title="Hapus"><i class="ri-delete-bin-line"></i></button>
-                             </form>';
-                }
+                // Allowed to edit and delete for both Server and Lokal based on Offline-First CRUD rules
+                $btn .= '<a href="' . route('admin.kelas-kuliah.edit', $row->id) . '" class="btn btn-icon btn-sm btn-warning rounded-pill" title="Edit"><i class="ri-pencil-line"></i></a>';
+                $btn .= '<form action="' . route('admin.kelas-kuliah.destroy', $row->id) . '" method="POST" class="d-inline delete-form">
+                            ' . csrf_field() . '
+                            ' . method_field('DELETE') . '
+                            <button type="button" class="btn btn-icon btn-sm btn-danger rounded-pill btn-delete" title="Hapus"><i class="ri-delete-bin-line"></i></button>
+                         </form>';
                 $btn .= '</div>';
 
                 // Status Badge
@@ -104,23 +103,37 @@ class KelasKuliahController extends Controller
                     $statusClass = 'bg-label-danger';
                     $statusText = 'Dihapus Server';
                 } else {
-                    switch ($row->status_sinkronisasi) {
-                        case 'synced':
-                            $statusClass = 'bg-label-success';
-                            $statusText = 'Sudah Sync';
-                            break;
-                        case 'created_local':
-                            $statusClass = 'bg-label-info';
-                            $statusText = 'Belum Sync (Lokal)';
-                            break;
-                        case 'updated_local':
-                            $statusClass = 'bg-label-warning';
-                            $statusText = 'Update Lokal';
-                            break;
-                        case 'pending_push':
-                            $statusClass = 'bg-label-secondary';
-                            $statusText = 'Pending Push';
-                            break;
+                    if ($row->sumber_data === 'server' && $row->status_sinkronisasi === 'synced') {
+                        $statusClass = 'bg-label-success';
+                        $statusText = 'Server (Synced)';
+                    } elseif ($row->sumber_data === 'lokal' && $row->status_sinkronisasi === 'created_local') {
+                        $statusClass = 'bg-label-warning';
+                        $statusText = 'Lokal (Belum Push)';
+                    } elseif ($row->sumber_data === 'server' && $row->status_sinkronisasi === 'updated_local') {
+                        $statusClass = 'bg-label-info';
+                        $statusText = 'Server (Update Lokal)';
+                    } elseif ($row->status_sinkronisasi === 'push_failed') {
+                        $statusClass = 'bg-label-danger';
+                        $statusText = 'Gagal Push';
+                    } else {
+                        switch ($row->status_sinkronisasi) {
+                            case 'synced':
+                                $statusClass = 'bg-label-success';
+                                $statusText = 'Sudah Sync';
+                                break;
+                            case 'created_local':
+                                $statusClass = 'bg-label-info';
+                                $statusText = 'Belum Sync (Lokal)';
+                                break;
+                            case 'updated_local':
+                                $statusClass = 'bg-label-warning';
+                                $statusText = 'Update Lokal';
+                                break;
+                            case 'pending_push':
+                                $statusClass = 'bg-label-secondary';
+                                $statusText = 'Pending Push';
+                                break;
+                        }
                     }
                 }
                 $statusBadge = '<span class="badge ' . $statusClass . ' rounded-pill">' . $statusText . '</span>';
@@ -174,7 +187,7 @@ class KelasKuliahController extends Controller
     public function create()
     {
         $prodis = ProgramStudi::orderBy('nama_program_studi')->get();
-        $semesters = Semester::where('a_periode_aktif', 1)->orderBy('id_semester', 'desc')->take(20)->get();
+        $semesters = Semester::where('a_periode_aktif', 1)->orderBy('id_semester', 'desc')->get();
         $mataKuliahs = MataKuliah::orderBy('nama_mk')->get();
 
         return view('kelas-kuliah.create', compact('prodis', 'semesters', 'mataKuliahs'));
@@ -189,7 +202,10 @@ class KelasKuliahController extends Controller
             $data['id_kelas_kuliah'] = Str::uuid();
             $data['sumber_data'] = 'lokal';
             $data['status_sinkronisasi'] = KelasKuliah::STATUS_CREATED_LOCAL;
+            $data['sync_action'] = 'insert';
+            $data['is_local_change'] = true;
             $data['is_deleted_server'] = false;
+            $data['is_deleted_local'] = false;
 
             // Default PDITT flag if not provided (Feeder expects 0/1)
             if (!array_key_exists('apa_untuk_pditt', $data) || $data['apa_untuk_pditt'] === null) {
@@ -284,7 +300,7 @@ class KelasKuliahController extends Controller
         ]);
 
         $prodis = ProgramStudi::orderBy('nama_program_studi')->get();
-        $semesters = Semester::orderBy('id_semester', 'desc')->take(20)->get();
+        $semesters = Semester::orderBy('id_semester', 'desc')->get();
         $mataKuliahs = MataKuliah::orderBy('nama_mk')->get();
 
         $tahunAjaranId = $kelasKuliah->semester?->id_tahun_ajaran;
@@ -357,14 +373,23 @@ class KelasKuliahController extends Controller
             }
         }
 
-        // Monitoring sync: tandai sebagai update lokal (dirty) jika sebelumnya sudah pernah tersinkronisasi
-        if (
-            in_array($kelasKuliah->status_sinkronisasi, [
-                KelasKuliah::STATUS_SYNCED,
-                KelasKuliah::STATUS_PUSH_SUCCESS,
-            ], true)
-        ) {
+        // Monitoring sync: tandai sebagai update lokal (dirty) jika sebelumnya sudah pernah tersinkronisasi atau dari server
+        $isSyncedBefore = in_array($kelasKuliah->status_sinkronisasi, [
+            KelasKuliah::STATUS_SYNCED,
+            KelasKuliah::STATUS_PUSH_SUCCESS,
+        ], true);
+
+        if ($kelasKuliah->sumber_data === 'server') {
             $data['status_sinkronisasi'] = KelasKuliah::STATUS_UPDATED_LOCAL;
+            $data['sync_action'] = 'update';
+            $data['is_local_change'] = true;
+        } else {
+            // Jika lokal, update_local action jika sudah pernah synced, kalau belum biarkan
+            if ($isSyncedBefore) {
+                $data['status_sinkronisasi'] = KelasKuliah::STATUS_UPDATED_LOCAL;
+                $data['sync_action'] = 'update';
+            }
+            $data['is_local_change'] = true;
         }
 
         $kelasKuliah->update($data);
@@ -382,31 +407,39 @@ class KelasKuliahController extends Controller
      */
     public function destroy(KelasKuliah $kelasKuliah)
     {
-        if ($kelasKuliah->sumber_data !== 'lokal') {
-            return redirect()
-                ->route('admin.kelas-kuliah.show', $kelasKuliah->id)
-                ->with('error', 'Data Kelas Kuliah dari server tidak dapat dihapus.');
-        }
-
-        // Anggap sudah pernah sync jika pernah dipush atau status bukan created_local
-        $hasEverSynced = $kelasKuliah->last_push_at !== null
-            || in_array($kelasKuliah->status_sinkronisasi, [
-                KelasKuliah::STATUS_SYNCED,
-                KelasKuliah::STATUS_UPDATED_LOCAL,
-                KelasKuliah::STATUS_DELETED_LOCAL,
-                KelasKuliah::STATUS_PUSH_SUCCESS,
-            ], true);
-
-        if (!$hasEverSynced) {
-            // Hard delete untuk data lokal yang belum pernah tersinkronisasi
-            $kelasKuliah->delete();
-        } else {
-            // Soft delete via flag dan status sinkronisasi
+        if ($kelasKuliah->sumber_data === 'server') {
+            // Soft delete for server data
             $kelasKuliah->update([
-                'is_deleted_server' => true,
+                'is_deleted_local' => true,
                 'status_sinkronisasi' => KelasKuliah::STATUS_DELETED_LOCAL,
+                'sync_action' => 'delete',
+                'is_local_change' => true,
                 'sync_error_message' => null,
             ]);
+        } else {
+            // Data Lokal
+            // Anggap sudah pernah sync jika pernah dipush atau status bukan created_local
+            $hasEverSynced = $kelasKuliah->last_push_at !== null
+                || in_array($kelasKuliah->status_sinkronisasi, [
+                    KelasKuliah::STATUS_SYNCED,
+                    KelasKuliah::STATUS_UPDATED_LOCAL,
+                    KelasKuliah::STATUS_DELETED_LOCAL,
+                    KelasKuliah::STATUS_PUSH_SUCCESS,
+                ], true);
+
+            if (!$hasEverSynced) {
+                // Hard delete untuk data lokal yang belum pernah tersinkronisasi
+                $kelasKuliah->delete();
+            } else {
+                // Soft delete via flag dan status sinkronisasi
+                $kelasKuliah->update([
+                    'is_deleted_local' => true,
+                    'status_sinkronisasi' => KelasKuliah::STATUS_DELETED_LOCAL,
+                    'sync_action' => 'delete',
+                    'is_local_change' => true,
+                    'sync_error_message' => null,
+                ]);
+            }
         }
 
         return redirect()

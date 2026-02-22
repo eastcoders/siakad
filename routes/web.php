@@ -16,7 +16,7 @@ Route::get('/dashboard', function () {
     return view('dashboard.index');
 })->name('dashboard');
 
-Route::prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard.admin');
     })->name('dashboard');
@@ -64,7 +64,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 });
 
-Route::prefix('admin')->group(function () {
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::post('kelas-dosen', [DosenPengajarKelasController::class, 'store'])->name('kelas.dosen.store');
     Route::delete('kelas-dosen/{kelas_dosen}', [DosenPengajarKelasController::class, 'destroy'])->name('kelas.dosen.destroy');
 });
+
+require __DIR__ . '/auth.php';

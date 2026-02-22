@@ -37,6 +37,10 @@ class MataKuliahController extends Controller
         $validated['sumber_data'] = 'lokal';
         $validated['status_sinkronisasi'] = MataKuliah::STATUS_CREATED_LOCAL;
         $validated['status_aktif'] = true;
+        $validated['sync_action'] = 'insert';
+        $validated['is_local_change'] = true;
+        $validated['is_deleted_server'] = false;
+        $validated['is_deleted_local'] = false;
 
         MataKuliah::create($validated);
 
@@ -60,11 +64,7 @@ class MataKuliahController extends Controller
     {
         $mataKuliah = MataKuliah::findOrFail($id);
 
-        // Protect server data
-        if ($mataKuliah->sumber_data != 'lokal') {
-            return redirect()->route('admin.mata-kuliah.index')
-                ->with('error', 'Data dari server tidak dapat diedit secara lokal.');
-        }
+        // Allowed to edit locally based on Offline-First rules
 
         $prodi = \App\Models\ProgramStudi::all();
         return view('mata-kuliah.edit', compact('mataKuliah', 'prodi'));
@@ -77,16 +77,27 @@ class MataKuliahController extends Controller
     {
         $mataKuliah = MataKuliah::findOrFail($id);
 
-        // Protect server data
-        if ($mataKuliah->sumber_data != 'lokal') {
-            return redirect()->route('admin.mata-kuliah.index')
-                ->with('error', 'Data dari server tidak dapat diupdate secara lokal.');
-        }
+        // Allowed to edit locally based on Offline-First rules
 
         $validated = $request->validated();
 
         // Update status for push possibility
-        $validated['status_sinkronisasi'] = MataKuliah::STATUS_UPDATED_LOCAL;
+        $isSyncedBefore = in_array($mataKuliah->status_sinkronisasi, [
+            MataKuliah::STATUS_SYNCED,
+            MataKuliah::STATUS_PUSH_SUCCESS,
+        ], true);
+
+        if ($mataKuliah->sumber_data === 'server') {
+            $validated['status_sinkronisasi'] = MataKuliah::STATUS_UPDATED_LOCAL;
+            $validated['sync_action'] = 'update';
+            $validated['is_local_change'] = true;
+        } else {
+            if ($isSyncedBefore) {
+                $validated['status_sinkronisasi'] = MataKuliah::STATUS_UPDATED_LOCAL;
+                $validated['sync_action'] = 'update';
+            }
+            $validated['is_local_change'] = true;
+        }
 
         $mataKuliah->update($validated);
 
@@ -101,13 +112,35 @@ class MataKuliahController extends Controller
     {
         $mataKuliah = MataKuliah::findOrFail($id);
 
-        // Protect server data
-        if ($mataKuliah->sumber_data != 'lokal') {
-            return redirect()->route('admin.mata-kuliah.index')
-                ->with('error', 'Data dari server tidak dapat dihapus secara lokal.');
-        }
+        if ($mataKuliah->sumber_data === 'server') {
+            $mataKuliah->update([
+                'is_deleted_local' => true,
+                'status_sinkronisasi' => MataKuliah::STATUS_DELETED_LOCAL,
+                'sync_action' => 'delete',
+                'is_local_change' => true,
+                'sync_error_message' => null,
+            ]);
+        } else {
+            $hasEverSynced = $mataKuliah->last_push_at !== null
+                || in_array($mataKuliah->status_sinkronisasi, [
+                    MataKuliah::STATUS_SYNCED,
+                    MataKuliah::STATUS_UPDATED_LOCAL,
+                    MataKuliah::STATUS_DELETED_LOCAL,
+                    MataKuliah::STATUS_PUSH_SUCCESS,
+                ], true);
 
-        $mataKuliah->delete();
+            if (!$hasEverSynced) {
+                $mataKuliah->delete();
+            } else {
+                $mataKuliah->update([
+                    'is_deleted_local' => true,
+                    'status_sinkronisasi' => MataKuliah::STATUS_DELETED_LOCAL,
+                    'sync_action' => 'delete',
+                    'is_local_change' => true,
+                    'sync_error_message' => null,
+                ]);
+            }
+        }
 
         return redirect()->route('admin.mata-kuliah.index')
             ->with('success', 'Mata Kuliah berhasil dihapus.');

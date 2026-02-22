@@ -45,6 +45,9 @@ class MataKuliah extends Model
         'last_synced_at',
         'last_push_at',
         'sync_error_message',
+        'sync_action',
+        'is_local_change',
+        'is_deleted_local',
     ];
 
     protected $casts = [
@@ -60,7 +63,17 @@ class MataKuliah extends Model
         'sks_praktek_lapangan' => 'decimal:2',
         'sks_simulasi' => 'decimal:2',
         'semester' => 'integer',
+        'is_local_change' => 'boolean',
+        'is_deleted_local' => 'boolean',
     ];
+
+    protected static function booted()
+    {
+        static::addGlobalScope('sync_active', function ($builder) {
+            $builder->where('is_deleted_local', false)
+                ->where('is_deleted_server', false);
+        });
+    }
 
     const STATUS_SYNCED = 'synced';
     const STATUS_CREATED_LOCAL = 'created_local';
