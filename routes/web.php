@@ -44,6 +44,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Dosen Sync & CRUD
     Route::post('dosen/sync', [DosenController::class, 'sync'])->name('dosen.sync');
+    Route::post('dosen/generate-user/{dosen}', [DosenController::class, 'generateUser'])->name('dosen.generate-user');
+    Route::post('dosen/bulk-generate-users', [DosenController::class, 'bulkGenerateUsers'])->name('dosen.bulk-generate-users');
     Route::resource('dosen', DosenController::class);
     // Mata Kuliah
     Route::resource('mata-kuliah', MataKuliahController::class);

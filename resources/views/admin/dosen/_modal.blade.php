@@ -12,7 +12,7 @@
                 @csrf
                 <div id="methodField"></div>
                 <div class="modal-body">
-                    @include('dosen._form', ['dosen' => null, 'readonly' => false])
+                    @include('admin.dosen._form', ['dosen' => null, 'readonly' => false])
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">

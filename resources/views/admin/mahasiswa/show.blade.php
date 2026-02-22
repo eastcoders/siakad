@@ -10,15 +10,15 @@
         </div>
 
         <!-- Submenu -->
-        @include('mahasiswa.partials._submenu')
+        @include('admin.mahasiswa.partials._submenu')
 
         <!-- Content based on Route -->
         @if(request()->routeIs('admin.mahasiswa.detail'))
-            @include('mahasiswa.partials._detail')
+            @include('admin.mahasiswa.partials._detail')
         @elseif(request()->routeIs('admin.mahasiswa.histori'))
-            @include('mahasiswa.partials._histori')
+            @include('admin.mahasiswa.partials._histori')
         @elseif(request()->routeIs('admin.mahasiswa.krs'))
-            @include('mahasiswa.partials._krs')
+            @include('admin.mahasiswa.partials._krs')
         @endif
 
     </div>

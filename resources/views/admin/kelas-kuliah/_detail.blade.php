@@ -353,7 +353,7 @@
 
 </div>
 
-@include('kelas-kuliah.partials.modal-dosen', [
+@include('admin.kelas-kuliah.partials.modal-dosen', [
     'kelasKuliah' => $kelasKuliah,
     'daftarDosen' => $daftarDosen ?? collect(),
     'daftarDosenLokal' => $daftarDosenLokal ?? collect(),

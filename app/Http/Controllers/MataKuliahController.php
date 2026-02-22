@@ -14,7 +14,7 @@ class MataKuliahController extends Controller
     public function index()
     {
         $mataKuliah = MataKuliah::with('prodi')->orderBy('kode_mk')->get();
-        return view('mata-kuliah.index', compact('mataKuliah'));
+        return view('admin.mata-kuliah.index', compact('mataKuliah'));
     }
 
     /**
@@ -23,7 +23,7 @@ class MataKuliahController extends Controller
     public function create()
     {
         $prodi = \App\Models\ProgramStudi::all();
-        return view('mata-kuliah.create', compact('prodi'));
+        return view('admin.mata-kuliah.create', compact('prodi'));
     }
 
     /**
@@ -54,7 +54,7 @@ class MataKuliahController extends Controller
     public function show(string $id)
     {
         $mataKuliah = MataKuliah::with('prodi')->findOrFail($id);
-        return view('mata-kuliah.show', compact('mataKuliah'));
+        return view('admin.mata-kuliah.show', compact('mataKuliah'));
     }
 
     /**
@@ -67,7 +67,7 @@ class MataKuliahController extends Controller
         // Allowed to edit locally based on Offline-First rules
 
         $prodi = \App\Models\ProgramStudi::all();
-        return view('mata-kuliah.edit', compact('mataKuliah', 'prodi'));
+        return view('admin.mata-kuliah.edit', compact('mataKuliah', 'prodi'));
     }
 
     /**

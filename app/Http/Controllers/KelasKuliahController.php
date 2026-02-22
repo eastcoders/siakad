@@ -181,7 +181,7 @@ class KelasKuliahController extends Controller
             $activeSemester = Semester::orderBy('id_semester', 'desc')->first();
         }
 
-        return view('kelas-kuliah.index', compact('semesters', 'activeSemester'));
+        return view('admin.kelas-kuliah.index', compact('semesters', 'activeSemester'));
     }
 
     public function create()
@@ -190,7 +190,7 @@ class KelasKuliahController extends Controller
         $semesters = Semester::where('a_periode_aktif', 1)->orderBy('id_semester', 'desc')->get();
         $mataKuliahs = MataKuliah::orderBy('nama_mk')->get();
 
-        return view('kelas-kuliah.create', compact('prodis', 'semesters', 'mataKuliahs'));
+        return view('admin.kelas-kuliah.create', compact('prodis', 'semesters', 'mataKuliahs'));
     }
 
     public function store(StoreKelasKuliahRequest $request)
@@ -278,7 +278,7 @@ class KelasKuliahController extends Controller
 
         $isEditMode = false;
 
-        return view('kelas-kuliah.show', compact('kelasKuliah', 'isEditMode', 'daftarDosen', 'daftarDosenLokal', 'jenisEvaluasiOptions'));
+        return view('admin.kelas-kuliah.show', compact('kelasKuliah', 'isEditMode', 'daftarDosen', 'daftarDosenLokal', 'jenisEvaluasiOptions'));
     }
 
     /**
@@ -335,7 +335,7 @@ class KelasKuliahController extends Controller
 
         $isEditMode = true;
 
-        return view('kelas-kuliah.edit', compact(
+        return view('admin.kelas-kuliah.edit', compact(
             'kelasKuliah',
             'isEditMode',
             'daftarDosen',

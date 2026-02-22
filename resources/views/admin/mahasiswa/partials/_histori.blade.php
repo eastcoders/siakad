@@ -125,4 +125,4 @@
 </div>
 
 {{-- Modal Riwayat Pendidikan --}}
-@include('mahasiswa.partials._modal_histori')
+@include('admin.mahasiswa.partials._modal_histori')

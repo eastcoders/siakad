@@ -7,7 +7,7 @@
         <span class="text-muted fw-light">Perkuliahan / Kelas Kuliah /</span> Edit
     </h4>
 
-    @include('kelas-kuliah._detail', [
+    @include('admin.kelas-kuliah._detail', [
         'kelasKuliah' => $kelasKuliah,
         'isEditMode' => $isEditMode ?? true,
     ])

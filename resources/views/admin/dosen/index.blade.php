@@ -16,6 +16,14 @@
         <div class="card-header border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
             <h5 class="card-title mb-0">Daftar Dosen</h5>
             <div class="d-flex gap-2 align-items-center flex-wrap">
+                <form id="bulkGenerateForm" action="{{ route('admin.dosen.bulk-generate-users') }}" method="POST"
+                    class="d-inline" style="display: none !important;">
+                    @csrf
+                    <!-- Hidden inputs will be appended here by JS -->
+                    <button type="button" id="btnBulkGenerate" class="btn btn-warning waves-effect waves-light">
+                        <i class="ri-user-add-line me-1"></i> Buat Akun (<span id="selectedCount">0</span>)
+                    </button>
+                </form>
                 <form id="syncForm" action="{{ route('admin.dosen.sync') }}" method="POST" class="d-inline">
                     @csrf
                     <button type="button" id="btnSync" class="btn btn-outline-info waves-effect">
@@ -32,8 +40,12 @@
             <table id="dosenTable" class="table table-bordered table-hover text-nowrap">
                 <thead class="table-light">
                     <tr>
+                        <th style="width: 10px;">
+                            <input class="form-check-input select-all-dosen" type="checkbox" id="selectAllDosen">
+                        </th>
                         <th>Sumber Data</th>
                         <th>Action</th>
+                        <th>Akun Login</th>
                         <th>Nama</th>
                         <th>NIDN</th>
                         <th>NIP</th>
@@ -46,6 +58,11 @@
                 <tbody>
                     @foreach ($dosen as $index => $item)
                         <tr>
+                            <td>
+                                @if (empty($item->user_id))
+                                    <input class="form-check-input dosen-checkbox" type="checkbox" value="{{ $item->id }}">
+                                @endif
+                            </td>
                             <td>
                                 @if ($item->status_sinkronisasi == 'pusat')
                                     <span class="badge bg-label-info rounded-pill">Pusat</span>
@@ -61,9 +78,21 @@
                                         <i class="ri-eye-line"></i>
                                     </button>
 
+                                    {{-- Generate Single User --}}
+                                    @if(empty($item->user_id))
+                                        <form action="{{ route('admin.dosen.generate-user', $item->id) }}" method="POST"
+                                            class="d-inline form-generate">
+                                            @csrf
+                                            <button type="button" class="btn btn-icon btn-sm btn-warning rounded-pill btn-generate"
+                                                title="Buatkan Akun Login">
+                                                <i class="ri-user-add-line"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+
                                     {{-- Edit & Delete (Only for Lokal) --}}
                                     @if ($item->status_sinkronisasi != 'pusat')
-                                        <button type="button" class="btn btn-icon btn-sm btn-warning rounded-pill btn-edit"
+                                        <button type="button" class="btn btn-icon btn-sm btn-secondary rounded-pill btn-edit"
                                             title="Edit" data-dosen="{{ json_encode($item) }}">
                                             <i class="ri-pencil-line"></i>
                                         </button>
@@ -78,6 +107,13 @@
                                         </form>
                                     @endif
                                 </div>
+                            </td>
+                            <td>
+                                @if($item->user_id)
+                                    <span class="badge bg-label-success"><i class="ri-check-line me-1"></i> Terhubung</span>
+                                @else
+                                    <span class="badge bg-label-danger"><i class="ri-close-line me-1"></i> Belum Ada</span>
+                                @endif
                             </td>
                             <td>
                                 <span class="fw-semibold text-primary">{{ $item->nama }}</span>
@@ -123,8 +159,8 @@
         </div>
     </div>
 
-    @include('dosen._modal')
-    @include('dosen._view_modal')
+    @include('admin.dosen._modal')
+    @include('admin.dosen._view_modal')
 @endsection
 
 @push('scripts')
@@ -253,6 +289,86 @@
                 }).then(function (result) {
                     if (result.value) {
                         form.submit();
+                    }
+                });
+            });
+
+            // Generate Single User Confirmation
+            $('.btn-generate').on('click', function (e) {
+                e.preventDefault();
+                const form = $(this).closest('form');
+                Swal.fire({
+                    title: 'Buat Akun Login?',
+                    text: "Sistem akan membuatkan User untuk dosen ini menggunakan NIDN / NIP sebagai username & password default.",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Buatkan!',
+                    cancelButtonText: 'Batal',
+                    customClass: {
+                        confirmButton: 'btn btn-primary me-3',
+                        cancelButton: 'btn btn-label-secondary'
+                    },
+                    buttonsStyling: false
+                }).then(function (result) {
+                    if (result.value) {
+                        form.submit();
+                    }
+                });
+            });
+
+            // Checkbox and Bulk Status Logic
+            const selectAll = $('#selectAllDosen');
+            const checkboxes = $('.dosen-checkbox');
+            const bulkForm = $('#bulkGenerateForm');
+            const selectedCountSpan = $('#selectedCount');
+
+            function updateBulkAction() {
+                const checkedCount = $('.dosen-checkbox:checked').length;
+                selectedCountSpan.text(checkedCount);
+                if (checkedCount > 0) {
+                    bulkForm.attr('style', 'display: inline-block !important;');
+                } else {
+                    bulkForm.attr('style', 'display: none !important;');
+                }
+            }
+
+            selectAll.on('change', function () {
+                checkboxes.prop('checked', $(this).prop('checked'));
+                updateBulkAction();
+            });
+
+            checkboxes.on('change', function () {
+                if (!$(this).prop('checked')) {
+                    selectAll.prop('checked', false);
+                }
+                updateBulkAction();
+            });
+
+            // Handle Bulk Generate Button
+            $('#btnBulkGenerate').on('click', function () {
+                const checked = $('.dosen-checkbox:checked');
+                if (checked.length === 0) return;
+
+                Swal.fire({
+                    title: `Buat ${checked.length} Akun Baru?`,
+                    text: "Proses ini akan mengenerate akun login bagi dosen yang terpilih secara serentak.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Proses Masal',
+                    cancelButtonText: 'Batal',
+                    customClass: {
+                        confirmButton: 'btn btn-warning me-3',
+                        cancelButton: 'btn btn-label-secondary'
+                    },
+                    buttonsStyling: false
+                }).then(function (result) {
+                    if (result.value) {
+                        // Append hidden inputs
+                        bulkForm.find('.appended-input').remove(); // clear previous
+                        checked.each(function () {
+                            bulkForm.append(`<input class="appended-input" type="hidden" name="dosen_ids[]" value="${$(this).val()}">`);
+                        });
+                        bulkForm.submit();
                     }
                 });
             });

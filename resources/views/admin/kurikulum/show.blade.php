@@ -186,7 +186,7 @@
     </div>
 
     <!-- Modal Tambah Matkul -->
-    @include('kurikulum._modal_tambah_matakuliah')
+    @include('admin.kurikulum._modal_tambah_matakuliah')
 
 @endsection
 

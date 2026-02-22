@@ -12,7 +12,7 @@ class KurikulumController extends Controller
     public function index()
     {
         $kurikulums = \App\Models\Kurikulum::with(['prodi', 'semester'])->orderBy('nama_kurikulum')->get();
-        return view('kurikulum.index', compact('kurikulums'));
+        return view('admin.kurikulum.index', compact('kurikulums'));
     }
 
     /**
@@ -22,7 +22,7 @@ class KurikulumController extends Controller
     {
         $prodis = \App\Models\ProgramStudi::orderBy('nama_program_studi')->get();
         $semesters = \App\Models\Semester::where('a_periode_aktif', 1)->orderBy('id_semester', 'desc')->get();
-        return view('kurikulum.create', compact('prodis', 'semesters'));
+        return view('admin.kurikulum.create', compact('prodis', 'semesters'));
     }
 
     /**
@@ -60,7 +60,7 @@ class KurikulumController extends Controller
         $kurikulum = \App\Models\Kurikulum::with(['prodi', 'semester', 'matakuliah.prodi'])->findOrFail($id);
         // Fetch all active mata kuliah for the dropdown, ordered by name
         $mataKuliahs = \App\Models\MataKuliah::orderBy('nama_mk')->get();
-        return view('kurikulum.show', compact('kurikulum', 'mataKuliahs'));
+        return view('admin.kurikulum.show', compact('kurikulum', 'mataKuliahs'));
     }
 
     /**
@@ -132,7 +132,7 @@ class KurikulumController extends Controller
         $prodis = \App\Models\ProgramStudi::orderBy('nama_program_studi')->get();
         $semesters = \App\Models\Semester::orderBy('id_semester', 'desc')->get();
 
-        return view('kurikulum.edit', compact('kurikulum', 'prodis', 'semesters'));
+        return view('admin.kurikulum.edit', compact('kurikulum', 'prodis', 'semesters'));
     }
 
     /**

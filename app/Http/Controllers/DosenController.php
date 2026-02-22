@@ -6,6 +6,10 @@ use App\Models\Dosen;
 use App\Models\Agama;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
 
 class DosenController extends Controller
 {
@@ -17,7 +21,7 @@ class DosenController extends Controller
         $dosen = Dosen::orderBy('nama')->get();
         $agamaList = Agama::all();
 
-        return view('dosen.index', compact('dosen', 'agamaList'));
+        return view('admin.dosen.index', compact('dosen', 'agamaList'));
     }
 
     /**
@@ -49,6 +53,66 @@ class DosenController extends Controller
 
         return redirect()->route('admin.dosen.index')
             ->with('success', 'Dosen lokal berhasil ditambahkan.');
+    }
+
+    /**
+     * Generate a user account for a specific Dosen.
+     */
+    public function generateUser(Dosen $dosen)
+    {
+        if ($dosen->user_id) {
+            return back()->with('error', 'Dosen ini sudah memiliki akun pengguna.');
+        }
+
+        $this->createUserForDosen($dosen);
+
+        return back()->with('success', 'Akun pengguna berhasil dibuat untuk dosen: ' . $dosen->nama);
+    }
+
+    /**
+     * Generate user accounts for multiple selected Dosens in bulk.
+     */
+    public function bulkGenerateUsers(Request $request)
+    {
+        $request->validate([
+            'dosen_ids' => 'required|array',
+            'dosen_ids.*' => 'exists:dosens,id'
+        ]);
+
+        $dosens = Dosen::whereIn('id', $request->dosen_ids)->whereNull('user_id')->get();
+
+        $count = 0;
+        foreach ($dosens as $dosen) {
+            $this->createUserForDosen($dosen);
+            $count++;
+        }
+
+        return back()->with('success', "Berhasil membuat {$count} akun pengguna dosen secara massal.");
+    }
+
+    /**
+     * Helper to centralize User creation logic (mirroring DosenObserver).
+     */
+    private function createUserForDosen(Dosen $dosen)
+    {
+        $loginId = $dosen->nidn ?? $dosen->nip ?? strtolower(Str::random(10));
+        $email = $dosen->email ?? ($loginId . '@polsa.ac.id');
+
+        $user = User::firstOrCreate(
+            ['email' => $email],
+            [
+                'name' => $dosen->nama,
+                'username' => $loginId,
+                'password' => Hash::make($loginId),
+            ]
+        );
+
+        $dosen->updateQuietly(['user_id' => $user->id]);
+
+        $roleDosen = Role::firstOrCreate(['name' => 'Dosen']);
+        if (!$user->hasRole('Dosen')) {
+            $user->assignRole($roleDosen);
+        }
     }
 
     /**

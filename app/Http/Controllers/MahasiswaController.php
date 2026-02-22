@@ -48,7 +48,7 @@ class MahasiswaController extends Controller
             ->orderBy('nama_mahasiswa')
             ->paginate(10);
 
-        return view('mahasiswa.index', compact('mahasiswa'));
+        return view('admin.mahasiswa.index', compact('mahasiswa'));
     }
 
     /**
@@ -68,7 +68,7 @@ class MahasiswaController extends Controller
             return [trim($item->id_wilayah) => $item->nama_wilayah];
         });
 
-        return view('mahasiswa.create', compact(
+        return view('admin.mahasiswa.create', compact(
             'agamas',
             'jenisTinggals',
             'alatTransportasis',
@@ -153,7 +153,7 @@ class MahasiswaController extends Controller
                 ->toArray();
         }
 
-        return view('mahasiswa.show', compact(
+        return view('admin.mahasiswa.show', compact(
             'mahasiswa',
             'agamas',
             'jenisTinggals',
@@ -182,7 +182,7 @@ class MahasiswaController extends Controller
         $profilPT = $this->profilPTService->getOwn();
         $perguruanTinggiList = $this->refSyncService->getAllPtExcludeLocal();
 
-        return view('mahasiswa.show', compact(
+        return view('admin.mahasiswa.show', compact(
             'mahasiswa',
             'jenisPendaftaran',
             'jalurPendaftaran',
@@ -197,7 +197,7 @@ class MahasiswaController extends Controller
     public function krs(string $id)
     {
         $mahasiswa = Mahasiswa::findOrFail($id);
-        return view('mahasiswa.show', compact('mahasiswa'));
+        return view('admin.mahasiswa.show', compact('mahasiswa'));
     }
 
     /**
