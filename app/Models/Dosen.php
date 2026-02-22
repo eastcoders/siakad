@@ -11,6 +11,7 @@ class Dosen extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'external_id',
         'nidn',
         'nip',
@@ -84,5 +85,10 @@ class Dosen extends Model
     public function pengajaranKelas(): HasMany
     {
         return $this->hasMany(DosenPengajarKelasKuliah::class, 'id_dosen');
+    }
+
+    public function akun()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

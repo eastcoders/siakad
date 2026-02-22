@@ -9,10 +9,17 @@ use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use App\Models\Dosen;
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles, SoftDeletes;
+
+    public function dosen()
+    {
+        return $this->hasOne(Dosen::class, 'user_id');
+    }
 
     /**
      * The attributes that are mass assignable.

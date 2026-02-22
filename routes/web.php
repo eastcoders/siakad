@@ -12,9 +12,17 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard.index');
-})->name('dashboard');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', function () {
+        // Init active role if not set
+        if (!session()->has('active_role') && auth()->user()->roles->count() > 0) {
+            session(['active_role' => auth()->user()->roles->first()->name]);
+        }
+        return view('dashboard.index');
+    })->name('dashboard');
+
+    Route::post('/switch-role', [\App\Http\Controllers\ActiveRoleController::class, 'switchRole'])->name('role.switch');
+});
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
@@ -48,6 +56,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Kelas Kuliah
     Route::resource('kelas-kuliah', \App\Http\Controllers\KelasKuliahController::class);
+
+    // Administration & RBAC
+    Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+    Route::post('users/{user}/assign-role', [\App\Http\Controllers\Admin\UserController::class, 'assignRole'])->name('users.assign-role');
+
+    Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class);
 
     Route::get('/api/prodi-by-pt/{id_perguruan_tinggi}', [RiwayatPendidikanMahasiswaController::class, 'getProdiByPt'])
         ->name('api.prodi-by-pt');

@@ -55,63 +55,114 @@
     <div class="menu-inner-shadow"></div>
 
     <ul class="menu-inner py-1">
-        <!-- Dashboard -->
-        {{-- <li class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-            <a href="{{ url('/dashboard') }}" class="menu-link">
-                <i class="menu-icon tf-icons ri-home-smile-line"></i>
-                <div data-i18n="Dashboard">Dashboard</div>
-            </a>
-        </li> --}}
+        @if(auth()->check() && auth()->user()->hasRole('admin'))
+            <!-- Dashboard Admin -->
+            <li class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <a href="{{ route('admin.dashboard') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-dashboard-line"></i>
+                    <div data-i18n="Dashboard">Dashboard</div>
+                </a>
+            </li>
 
-        <!-- Admin Dashboard -->
-        <li class="menu-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-            <a href="{{ route('admin.dashboard') }}" class="menu-link">
-                <i class="menu-icon tf-icons ri-dashboard-line"></i>
-                <div data-i18n="Control Tower">Dashboard</div>
-            </a>
-        </li>
+            <!-- Sivitas Akademika -->
+            <li class="menu-header mt-5 small text-uppercase">
+                <span class="menu-header-text">Sivitas Akademika</span>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.dosen.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.dosen.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-user-line"></i>
+                    <div data-i18n="Data Dosen">Data Dosen</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.mahasiswa.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.mahasiswa.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-graduation-cap-line"></i>
+                    <div data-i18n="Data Mahasiswa">Data Mahasiswa</div>
+                </a>
+            </li>
 
-        <!-- Master Data -->
-        <li class="menu-header mt-5 small text-uppercase">
-            <span class="menu-header-text">Master Data</span>
-        </li>
+            <!-- Perkuliahan -->
+            <li class="menu-header mt-5 small text-uppercase">
+                <span class="menu-header-text">Data Perkuliahan</span>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.mata-kuliah.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.mata-kuliah.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-book-read-line"></i>
+                    <div data-i18n="Mata Kuliah">Mata Kuliah</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.kurikulum.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.kurikulum.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-book-open-line"></i>
+                    <div data-i18n="Kurikulum">Kurikulum</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.kelas-kuliah.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.kelas-kuliah.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-artboard-line"></i>
+                    <div data-i18n="Kelas Perkuliahan">Kelas Perkuliahan</div>
+                </a>
+            </li>
 
-        <!-- Data Mahasiswa -->
-        <li class="menu-item {{ request()->routeIs('admin.mahasiswa.*') ? 'active' : '' }}">
-            <a href="{{ route('admin.mahasiswa.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons ri-graduation-cap-line"></i>
-                <div data-i18n="Data Mahasiswa">Data Mahasiswa</div>
-            </a>
-        </li>
-        <li class="menu-item {{ request()->routeIs('admin.dosen.*') ? 'active' : '' }}">
-            <a href="{{ route('admin.dosen.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons ri-user-line"></i>
-                <div data-i18n="Data Dosen">Data Dosen</div>
-            </a>
-        </li>
+            <!-- Manajemen Pengguna & Otorisasi -->
+            <li class="menu-header mt-5 small text-uppercase">
+                <span class="menu-header-text">Akses & Keamanan</span>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.roles.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-police-badge-line"></i>
+                    <div data-i18n="Master Jabatan">Master Jabatan (Roles)</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.users.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-shield-user-line"></i>
+                    <div data-i18n="Manajemen Role">Manajemen Multi-Role</div>
+                </a>
+            </li>
+        @else
+            <!-- Dashboard Default System (Hanya untuk non-admin) -->
+            <li class="menu-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <a href="{{ url('/dashboard') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-home-smile-line"></i>
+                    <div data-i18n="Dashboard Utama">Dashboard Utama</div>
+                </a>
+            </li>
+        @endif
 
-        <!-- Perkuliahan -->
-        <li class="menu-header mt-5 small text-uppercase">
-            <span class="menu-header-text">Perkuliahan</span>
-        </li>
-        <li class="menu-item {{ request()->routeIs('admin.mata-kuliah.*') ? 'active' : '' }}">
-            <a href="{{ route('admin.mata-kuliah.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons ri-book-read-line"></i>
-                <div data-i18n="Mata Kuliah">Mata Kuliah</div>
-            </a>
-        </li>
-
-        <li class="menu-item {{ request()->routeIs('admin.kurikulum.*') ? 'active' : '' }}">
-            <a href="{{ route('admin.kurikulum.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons ri-book-open-line"></i>
-                <div data-i18n="Kurikulum">Kurikulum</div>
-            </a>
-        </li>
-        <li class="menu-item {{ request()->routeIs('admin.kelas-kuliah.*') ? 'active' : '' }}">
-            <a href="{{ route('admin.kelas-kuliah.index') }}" class="menu-link">
-                <i class="menu-icon tf-icons ri-artboard-line"></i>
-                <div data-i18n="Kelas Perkuliahan">Kelas Perkuliahan</div>
-            </a>
-        </li>
+        {{-- CONTOH ACTIVE ROLE UX UNTUK DOSEN / KAPRODI --}}
+        @if(session('active_role') == 'Kaprodi')
+            <li class="menu-header mt-5 small text-uppercase">
+                <span class="menu-header-text">Ruang Kaprodi</span>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <i class="menu-icon tf-icons ri-team-line"></i>
+                    <div data-i18n="Monitoring Dosen Pengajar">Monitoring Dosen Pengajar</div>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <i class="menu-icon tf-icons ri-file-list-3-line"></i>
+                    <div data-i18n="Persetujuan KRS">Persetujuan KRS</div>
+                </a>
+            </li>
+        @elseif(session('active_role') == 'Dosen')
+            <li class="menu-header mt-5 small text-uppercase">
+                <span class="menu-header-text">Ruang Dosen</span>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <i class="menu-icon tf-icons ri-calendar-todo-line"></i>
+                    <div data-i18n="Jadwal Mengajar">Jadwal Mengajar</div>
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <i class="menu-icon tf-icons ri-edit-box-line"></i>
+                    <div data-i18n="Input Nilai Mahasiswa">Input Nilai Mahasiswa</div>
+                </a>
+            </li>
+        @endif
     </ul>
 </aside>

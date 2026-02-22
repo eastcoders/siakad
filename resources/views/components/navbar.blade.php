@@ -53,8 +53,8 @@
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <span class="fw-medium d-block">John Doe</span>
-                                    <small class="text-muted">Admin</small>
+                                    <span class="fw-medium d-block">{{ auth()->user()->name ?? 'User' }}</span>
+                                    <small class="text-muted">{{ session('active_role', 'Administrator') }}</small>
                                 </div>
                             </div>
                         </a>
@@ -62,6 +62,31 @@
                     <li>
                         <div class="dropdown-divider"></div>
                     </li>
+
+                    <!-- Role Switcher -->
+                    @if(auth()->check() && auth()->user()->roles->count() > 1)
+                        <li>
+                            <h6 class="dropdown-header">Ganti Jabatan Saat Ini:</h6>
+                        </li>
+                        @foreach(auth()->user()->roles as $role)
+                            @if(session('active_role') !== $role->name)
+                                <li>
+                                    <form method="POST" action="{{ route('role.switch') }}">
+                                        @csrf
+                                        <input type="hidden" name="role" value="{{ $role->name }}">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="ri-user-shared-line me-3 text-primary"></i>
+                                            <span class="align-middle">Masuk sbg {{ $role->name }}</span>
+                                        </button>
+                                    </form>
+                                </li>
+                            @endif
+                        @endforeach
+                        <li>
+                            <div class="dropdown-divider"></div>
+                        </li>
+                    @endif
+                    <!-- / Role Switcher -->
                     <li>
                         <a class="dropdown-item" href="#">
                             <i class="ri-user-3-line me-3"></i><span class="align-middle">My Profile</span>
@@ -85,10 +110,14 @@
                         <div class="dropdown-divider"></div>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="javascript:void(0);">
-                            <i class="ri-shut-down-line me-3"></i>
-                            <span class="align-middle">Log Out</span>
-                        </a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <a class="dropdown-item" href="route('logout')"
+                                onclick="event.preventDefault(); this.closest('form').submit();">
+                                <i class="ri-shut-down-line me-3"></i>
+                                <span class="align-middle">Log Out</span>
+                            </a>
+                        </form>
                     </li>
                 </ul>
             </li>
