@@ -42,13 +42,40 @@ class MahasiswaController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $mahasiswa = Mahasiswa::with(['riwayatAktif.prodi', 'agama'])
-            ->orderBy('nama_mahasiswa')
-            ->paginate(10);
+        $query = Mahasiswa::with(['riwayatAktif.prodi', 'riwayatAktif.semester', 'agama'])
+            ->addSelect([
+                'total_sks' => \App\Models\PesertaKelasKuliah::selectRaw('COALESCE(SUM(kelas_kuliah.sks_mk), 0)')
+                    ->join('kelas_kuliah', 'kelas_kuliah.id_kelas_kuliah', '=', 'peserta_kelas_kuliah.id_kelas_kuliah')
+                    ->join('riwayat_pendidikans', 'riwayat_pendidikans.id', '=', 'peserta_kelas_kuliah.riwayat_pendidikan_id')
+                    ->whereColumn('riwayat_pendidikans.id_mahasiswa', 'mahasiswas.id')
+            ]);
 
-        return view('admin.mahasiswa.index', compact('mahasiswa'));
+        // Filter berdasarkan Tahun Angkatan / Periode Masuk
+        if ($request->filled('periode_masuk')) {
+            $query->whereHas('riwayatAktif', function ($q) use ($request) {
+                $q->where('id_periode_masuk', $request->periode_masuk);
+            });
+        }
+
+        // Filter berdasarkan Program Studi
+        if ($request->filled('prodi')) {
+            $query->whereHas('riwayatAktif', function ($q) use ($request) {
+                $q->where('id_prodi', $request->prodi);
+            });
+        }
+
+        $mahasiswa = $query->orderBy('nama_mahasiswa')->get();
+
+        // Data unuk dropdown filter
+        $semesters = \App\Models\Semester::orderBy('id_semester', 'desc')->get();
+        $prodis = \App\Models\ProgramStudi::orderBy('nama_program_studi')->get();
+
+        $selectedPeriode = $request->periode_masuk;
+        $selectedProdi = $request->prodi;
+
+        return view('admin.mahasiswa.index', compact('mahasiswa', 'semesters', 'prodis', 'selectedPeriode', 'selectedProdi'));
     }
 
     /**
@@ -197,7 +224,49 @@ class MahasiswaController extends Controller
     public function krs(string $id)
     {
         $mahasiswa = Mahasiswa::findOrFail($id);
-        return view('admin.mahasiswa.show', compact('mahasiswa'));
+
+        // Ambil Data Semester Aktif
+        $activeSemester = \App\Models\Semester::where('a_periode_aktif', 1)
+            ->orderBy('id_semester', 'desc')
+            ->first();
+
+        // Cari riwayat pendidikan aktif atau yang terakhir
+        $riwayatPendidikan = $mahasiswa->riwayatPendidikans()
+            ->orderBy('id_periode_masuk', 'desc')
+            ->first();
+
+        $pesertaKelasKuliah = collect();
+        $totalSks = 0;
+        $daftarKelas = collect();
+
+        if ($riwayatPendidikan && $activeSemester) {
+            // Ambil semua kelas yang diikuti mahasiswa ini pada semester aktif
+            $pesertaKelasKuliah = \App\Models\PesertaKelasKuliah::with([
+                'kelasKuliah',
+                'kelasKuliah.mataKuliah',
+                'kelasKuliah.dosenPengajar.dosenPenugasan.dosen'
+            ])
+                ->where('riwayat_pendidikan_id', $riwayatPendidikan->id)
+                ->whereHas('kelasKuliah', function ($query) use ($activeSemester) {
+                    $query->where('id_semester', $activeSemester->id_semester);
+                })
+                ->get();
+
+            $totalSks = $pesertaKelasKuliah->sum(function ($peserta) {
+                return (float) ($peserta->kelasKuliah->sks_mk ?? 0);
+            });
+
+            // Ambil daftar kelas tersedia di semester ini untuk opsi Tambah KRS
+            // Kecualikan kelas yang sudah diikuti
+            $enrolledKelasIds = $pesertaKelasKuliah->pluck('id_kelas_kuliah')->toArray();
+            $daftarKelas = \App\Models\KelasKuliah::with('mataKuliah')
+                ->where('id_semester', $activeSemester->id_semester)
+                ->whereNotIn('id_kelas_kuliah', $enrolledKelasIds)
+                ->orderBy('nama_kelas_kuliah')
+                ->get();
+        }
+
+        return view('admin.mahasiswa.show', compact('mahasiswa', 'activeSemester', 'pesertaKelasKuliah', 'totalSks', 'riwayatPendidikan', 'daftarKelas'));
     }
 
     /**
@@ -217,13 +286,45 @@ class MahasiswaController extends Controller
         return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil diperbarui.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        // Logic to delete data would go here
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus.');
+        try {
+            $mahasiswa = Mahasiswa::findOrFail($id);
+
+            if ($mahasiswa->sumber_data === 'server') {
+                $mahasiswa->update([
+                    'is_deleted_local' => true,
+                    'status_sinkronisasi' => 'deleted_local',
+                    'sync_action' => 'delete',
+                    'is_local_change' => true,
+                    'sync_error_message' => null,
+                ]);
+            } else {
+                $hasEverSynced = $mahasiswa->last_push_at !== null
+                    || in_array($mahasiswa->status_sinkronisasi, [
+                        'synced',
+                        'updated_local',
+                        'deleted_local',
+                        'push_success',
+                    ], true);
+
+                if (!$hasEverSynced) {
+                    $mahasiswa->delete();
+                } else {
+                    $mahasiswa->update([
+                        'is_deleted_local' => true,
+                        'status_sinkronisasi' => 'deleted_local',
+                        'sync_action' => 'delete',
+                        'is_local_change' => true,
+                        'sync_error_message' => null,
+                    ]);
+                }
+            }
+
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.mahasiswa.index')->with('error', 'Gagal menghapus data mahasiswa: ' . $e->getMessage());
+        }
     }
 
     /**

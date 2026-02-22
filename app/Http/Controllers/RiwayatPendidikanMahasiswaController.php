@@ -87,7 +87,35 @@ class RiwayatPendidikanMahasiswaController extends Controller
     public function destroy(RiwayatPendidikan $riwayat_pendidikan)
     {
         try {
-            $riwayat_pendidikan->delete();
+            if ($riwayat_pendidikan->sumber_data === 'server') {
+                $riwayat_pendidikan->update([
+                    'is_deleted_local' => true,
+                    'status_sinkronisasi' => 'deleted_local',
+                    'sync_action' => 'delete',
+                    'is_local_change' => true,
+                    'sync_error_message' => null,
+                ]);
+            } else {
+                $hasEverSynced = $riwayat_pendidikan->last_push_at !== null
+                    || in_array($riwayat_pendidikan->status_sinkronisasi, [
+                        'synced',
+                        'updated_local',
+                        'deleted_local',
+                        'push_success',
+                    ], true);
+
+                if (!$hasEverSynced) {
+                    $riwayat_pendidikan->delete();
+                } else {
+                    $riwayat_pendidikan->update([
+                        'is_deleted_local' => true,
+                        'status_sinkronisasi' => 'deleted_local',
+                        'sync_action' => 'delete',
+                        'is_local_change' => true,
+                        'sync_error_message' => null,
+                    ]);
+                }
+            }
 
             return back()->with('success', 'Riwayat pendidikan berhasil dihapus.');
         } catch (\Exception $e) {

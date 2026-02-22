@@ -24,6 +24,7 @@ class PesertaKelasKuliah extends Model
     protected $fillable = [
         'id_kelas_kuliah',
         'id_registrasi_mahasiswa',
+        'riwayat_pendidikan_id',
         'nilai_angka',
         'nilai_akhir',
         'nilai_huruf',
@@ -88,9 +89,18 @@ class PesertaKelasKuliah extends Model
 
     /**
      * Relasi ke Riwayat Pendidikan (registrasi mahasiswa).
-     * id_registrasi_mahasiswa di Feeder = id_riwayat_pendidikan di lokal.
+     * Secara lokal, tabel ini merelasikan ke `riwayat_pendidikan_id` demi mengakomodir 
+     * mahasiswa baru (sumber_data: lokal) yang belum memiliki `id_registrasi_mahasiswa` dari Feeder.
      */
     public function riwayatPendidikan(): BelongsTo
+    {
+        return $this->belongsTo(RiwayatPendidikan::class, 'riwayat_pendidikan_id', 'id');
+    }
+
+    /**
+     * Relasi fallback ke Feeder UUID (jika data sepenuhnya bersumber dari server dan belum dimigrasi).
+     */
+    public function riwayatPendidikanFeeder(): BelongsTo
     {
         return $this->belongsTo(RiwayatPendidikan::class, 'id_registrasi_mahasiswa', 'id_riwayat_pendidikan');
     }

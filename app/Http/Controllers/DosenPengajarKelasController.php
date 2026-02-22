@@ -23,7 +23,7 @@ class DosenPengajarKelasController extends Controller
 
         try {
             DB::transaction(function () use ($data, &$createdRecord): void {
-                $kelasKuliah = KelasKuliah::findOrFail($data['kelas_kuliah_id']);
+                $kelasKuliah = KelasKuliah::with('semester')->findOrFail($data['kelas_kuliah_id']);
 
                 // Cek duplikasi
                 $isDuplicate = DosenPengajarKelasKuliah::query()
@@ -38,10 +38,12 @@ class DosenPengajarKelasController extends Controller
                     ]);
                 }
 
-                // Cari id_registrasi_dosen (UUID) dari penugasan (jika ada)
+                // Cari id_registrasi_dosen (UUID) dari penugasan berdasarkan tahun ajaran.
+                $idTahunAjaran = $kelasKuliah->semester?->id_tahun_ajaran;
+
                 $penugasan = DosenPenugasan::where('id_dosen', $data['dosen_id'])
-                    ->whereHas('semester', function ($q) use ($kelasKuliah) {
-                        $q->where('id_semester', $kelasKuliah->id_semester);
+                    ->when($idTahunAjaran, function ($q) use ($idTahunAjaran) {
+                        return $q->where('id_tahun_ajaran', $idTahunAjaran);
                     })
                     ->first();
 

@@ -3,6 +3,7 @@
 @section('title', 'Manajemen Data Mahasiswa')
 
 @push('styles')
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/select2/select2.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}" />
     <link rel="stylesheet"
@@ -15,30 +16,9 @@
 
 @section('content')
     <div class="card">
-        <div class="card-header border-bottom d-flex justify-content-between align-items-center mb-3">
-            <h5 class="card-title mb-0">Daftar Mahasiswa</h5>
-            <div class="d-flex gap-2 align-items-center">
-                 <form action="{{ route('admin.mahasiswa.index') }}" method="GET" class="d-flex gap-2">
-                    <input type="text" name="q" class="form-control" placeholder="Search..." value="{{ request('q') }}">
-                    <button type="submit" class="btn btn-primary"><i class="ri-search-line"></i></button>
-                </form>
-            </div>
-        </div>
-        
-        <div class="px-4 pb-3">
-            <div class="d-flex flex-wrap gap-2 justify-content-between">
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-secondary"><i class="ri-filter-3-line me-1"></i> FILTER / SORT</button>
-                    <a href="{{ route('admin.mahasiswa.create') }}" class="btn btn-primary"><i class="ri-add-line me-1"></i> TAMBAH</a>
-                </div>
-                <div class="text-muted d-flex align-items-center">
-                    Halaman ini menampilkan data berdasarkan angkatan : <span class="badge bg-warning text-dark ms-1">2023</span>
-                </div>
-            </div>
-        </div>
 
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover text-nowrap">
+        <div class="table-responsive pt-2">
+            <table class="datatables-basic table table-bordered table-hover text-nowrap">
                 <thead class="table-light">
                     <tr>
                         <th width="100px">Action</th>
@@ -47,6 +27,7 @@
                         <th>Nama</th>
                         <th>NIM</th>
                         <th>Program Studi</th>
+                        <th>Tahun Angkatan</th>
                         <th>Jenis Kelamin</th>
                         <th>Agama</th>
                         <th>Total SKS Diambil</th>
@@ -54,7 +35,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($mahasiswa as $index => $item)
+                    @foreach ($mahasiswa as $index => $item)
                         <tr>
                             <td>
                                 <div class="d-flex gap-2">
@@ -80,36 +61,73 @@
                                     <span class="badge bg-warning rounded-pill"> <i class="ri-time-line me-1"></i> belum sync</span>
                                 @endif
                             </td>
-                            <td>{{ $mahasiswa->firstItem() + $index }}</td>
+                            <td>{{ $index + 1 }}</td>
                             <td>
                                 <span class="fw-bold text-primary">{{ $item->nama_mahasiswa }}</span>
                             </td>
                             <td>{{ $item->riwayatAktif->nim ?? '-' }}</td>
                             <td>{{ $item->riwayatAktif->prodi->nama_program_studi ?? '-' }}</td>
+                            <td>{{ $item->riwayatAktif->semester->id_tahun_ajaran ?? '-' }}</td>
                             <td>{{ $item->jenis_kelamin == 'L' ? 'Laki - Laki' : 'Perempuan' }}</td>
                             <td>{{ $item->agama->nama_agama ?? '-' }}</td>
                             <td class="text-center">
-                                {{-- 
-                                    TODO:
-                                    Kolom Total SKS akan diganti dengan hasil agregasi relasi KelasPerkuliahan
-                                    setelah tabel & relasi siap.
-                                --}}
-                                <span class="fw-bold">0</span>
+                                <span class="fw-bold">{{ floatval($item->total_sks) }}</span>
                             </td>
                             <td>{{ $item->tanggal_lahir ? $item->tanggal_lahir->format('d/m/Y') : '-' }}</td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="10" class="text-center p-4">
-                                <div class="text-muted">Data mahasiswa tidak ditemukan.</div>
-                            </td>
-                        </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
-        <div class="card-footer d-flex justify-content-end py-3">
-             {{ $mahasiswa->links() }}
+        <div class="card-footer py-2">
+             {{-- Pagination handled by DataTables --}}
+        </div>
+    </div>
+
+    <!-- Modal Filter -->
+    <div class="modal fade" id="modalFilter" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalFilterTitle">Filter Data Mahasiswa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('admin.mahasiswa.index') }}" method="GET">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Tahun Angkatan / Semester Masuk</label>
+                                <select class="form-select select2-filter" name="periode_masuk" data-placeholder="-- Semua Angkatan --">
+                                    <option value="">-- Semua Angkatan --</option>
+                                    @foreach($semesters as $smt)
+                                        <option value="{{ $smt->id_semester }}" {{ request('periode_masuk') == $smt->id_semester ? 'selected' : '' }}>
+                                            {{ $smt->nama_semester }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Program Studi</label>
+                                <select class="form-select select2-filter" name="prodi" data-placeholder="-- Semua Program Studi --">
+                                    <option value="">-- Semua Program Studi --</option>
+                                    @foreach($prodis as $prd)
+                                        <option value="{{ $prd->id_prodi }}" {{ request('prodi') == $prd->id_prodi ? 'selected' : '' }}>
+                                            {{ $prd->nama_program_studi }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer d-flex justify-content-between">
+                        <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-outline-secondary">Reset</a>
+                        <div>
+                            <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary">Terapkan Filter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 @endsection
@@ -118,6 +136,7 @@
     <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/moment/moment.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/flatpickr/flatpickr.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/select2/select2.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/@form-validation/popular.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/@form-validation/bootstrap5.js') }}"></script>
     <script src="{{ asset('assets/vendor/libs/@form-validation/auto-focus.js') }}"></script>
@@ -130,8 +149,7 @@
                 var dt_basic = dt_basic_table.DataTable({
                     columnDefs: [{
                         // Actions
-                        targets: -1,
-                        title: 'Actions',
+                        targets: 0,
                         orderable: false,
                         searchable: false,
                     }
@@ -140,6 +158,13 @@
                     displayLength: 7,
                     lengthMenu: [7, 10, 25, 50, 75, 100],
                     buttons: [
+                        {
+                            text: '<i class="ri-filter-3-line ri-16px me-sm-1"></i> <span class="d-none d-sm-inline-block">Filter</span>',
+                            className: 'btn btn-outline-secondary me-2 waves-effect waves-light',
+                            action: function (e, dt, node, config) {
+                                $('#modalFilter').modal('show');
+                            }
+                        },
                         {
                             extend: 'collection',
                             className: 'btn btn-label-primary dropdown-toggle me-4 waves-effect waves-light',
@@ -150,7 +175,7 @@
                                     text: '<i class="ri-printer-line me-1" ></i>Print',
                                     className: 'dropdown-item',
                                     exportOptions: {
-                                        columns: [0, 1, 2, 3, 4, 5],
+                                        columns: [0, 1, 2, 3, 4, 5, 6],
                                     }
                                 },
                                 {
@@ -158,7 +183,7 @@
                                     text: '<i class="ri-file-text-line me-1" ></i>Csv',
                                     className: 'dropdown-item',
                                     exportOptions: {
-                                        columns: [0, 1, 2, 3, 4, 5],
+                                        columns: [0, 1, 2, 3, 4, 5, 6],
                                     }
                                 },
                                 {
@@ -166,7 +191,7 @@
                                     text: '<i class="ri-file-excel-line me-1"></i>Excel',
                                     className: 'dropdown-item',
                                     exportOptions: {
-                                        columns: [0, 1, 2, 3, 4, 5],
+                                        columns: [0, 1, 2, 3, 4, 5, 6],
                                     }
                                 },
                                 {
@@ -174,7 +199,7 @@
                                     text: '<i class="ri-file-pdf-line me-1"></i>Pdf',
                                     className: 'dropdown-item',
                                     exportOptions: {
-                                        columns: [0, 1, 2, 3, 4, 5],
+                                        columns: [0, 1, 2, 3, 4, 5, 6],
                                     }
                                 },
                                 {
@@ -182,7 +207,7 @@
                                     text: '<i class="ri-file-copy-line me-1" ></i>Copy',
                                     className: 'dropdown-item',
                                     exportOptions: {
-                                        columns: [0, 1, 2, 3, 4, 5],
+                                        columns: [0, 1, 2, 3, 4, 5, 6],
                                     }
                                 }
                             ]
@@ -195,9 +220,22 @@
                             }
                         }
                     ],
-                    responsive: true
+                    responsive: false,
+                    scrollX: true
                 });
-                $('div.head-label').html('<h5 class="card-title mb-0">Data Mahasiswa</h5>');
+                let filterBadge = '';
+                @if(request()->filled('periode_masuk') || request()->filled('prodi'))
+                    filterBadge = '<span class="badge bg-primary ms-2 fs-6"><i class="ri-filter-fill"></i> Data Difilter</span>';
+                @endif
+                $('div.head-label').html('<h5 class="card-title mb-0">Daftar Mahasiswa' + filterBadge + '</h5>');
+            }
+
+            if ($('.select2-filter').length) {
+                $('.select2-filter').select2({
+                    dropdownParent: $('#modalFilter'),
+                    width: '100%',
+                    allowClear: true
+                });
             }
         });
     </script>

@@ -22,8 +22,8 @@ class KelasKuliahController extends Controller
                 'semester',
                 'dosenPengajar.dosenPenugasan.dosen',
             ])
-                ->withCount('pesertaKelasKuliah')
-                ->select('kelas_kuliah.*');
+                ->select('kelas_kuliah.*')
+                ->withCount('pesertaKelasKuliah');
 
             // 1. Filter by specific columns
             if ($request->has('id_semester') && $request->id_semester != '') {
@@ -244,6 +244,8 @@ class KelasKuliahController extends Controller
             'mataKuliah',
             'dosenPengajar.dosen',
             'dosenPengajar.dosenAliasLokal',
+            'pesertaKelasKuliah.riwayatPendidikan.mahasiswa',
+            'pesertaKelasKuliah.riwayatPendidikan.programStudi',
         ]);
 
         $tahunAjaranId = $kelasKuliah->semester?->id_tahun_ajaran;
@@ -269,6 +271,16 @@ class KelasKuliahController extends Controller
             ->orderBy('nama')
             ->get();
 
+        // ─── AMBIL MAHASISWA AKTIF ───────────────────────────────────────────
+        // Untuk input kolektif/individu, kita ambil mahasiswa yang belum terdaftar di kelas ini
+        // dan ideally difilter per prodi (untuk kemudahan, ambil semua yang statusnya Aktif).
+        $pesertaIds = $kelasKuliah->pesertaKelasKuliah->pluck('riwayat_pendidikan_id')->toArray();
+        $daftarMahasiswa = \App\Models\RiwayatPendidikan::with(['mahasiswa', 'programStudi'])
+            ->whereNotIn('id', $pesertaIds)
+            // Filter by prodi kelas if needed: ->where('id_prodi', $kelasKuliah->id_prodi)
+            ->get()
+            ->sortBy('mahasiswa.nama');
+
         $jenisEvaluasiOptions = [
             '1' => 'Evaluasi Akademik',
             '2' => 'Aktivitas Partisipatif',
@@ -278,7 +290,14 @@ class KelasKuliahController extends Controller
 
         $isEditMode = false;
 
-        return view('admin.kelas-kuliah.show', compact('kelasKuliah', 'isEditMode', 'daftarDosen', 'daftarDosenLokal', 'jenisEvaluasiOptions'));
+        return view('admin.kelas-kuliah.show', compact(
+            'kelasKuliah',
+            'isEditMode',
+            'daftarDosen',
+            'daftarDosenLokal',
+            'jenisEvaluasiOptions',
+            'daftarMahasiswa'
+        ));
     }
 
     /**
@@ -297,6 +316,8 @@ class KelasKuliahController extends Controller
             'mataKuliah',
             'dosenPengajar.dosen',
             'dosenPengajar.dosenAliasLokal',
+            'pesertaKelasKuliah.riwayatPendidikan.mahasiswa',
+            'pesertaKelasKuliah.riwayatPendidikan.programStudi',
         ]);
 
         $prodis = ProgramStudi::orderBy('nama_program_studi')->get();
@@ -326,6 +347,13 @@ class KelasKuliahController extends Controller
             ->orderBy('nama')
             ->get();
 
+        // ─── AMBIL MAHASISWA AKTIF ───────────────────────────────────────────
+        $pesertaIds = $kelasKuliah->pesertaKelasKuliah->pluck('riwayat_pendidikan_id')->toArray();
+        $daftarMahasiswa = \App\Models\RiwayatPendidikan::with(['mahasiswa', 'programStudi'])
+            ->whereNotIn('id', $pesertaIds)
+            ->get()
+            ->sortBy('mahasiswa.nama');
+
         $jenisEvaluasiOptions = [
             '1' => 'Evaluasi Akademik',
             '2' => 'Aktivitas Partisipatif',
@@ -343,7 +371,8 @@ class KelasKuliahController extends Controller
             'jenisEvaluasiOptions',
             'prodis',
             'semesters',
-            'mataKuliahs'
+            'mataKuliahs',
+            'daftarMahasiswa'
         ));
     }
 

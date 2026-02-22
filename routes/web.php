@@ -56,10 +56,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('kurikulum/{id}/matkul/{id_matkul}', [KurikulumController::class, 'destroyMatkul'])->name('kurikulum.matkul.destroy');
     Route::resource('kurikulum', KurikulumController::class);
 
-    // Kelas Kuliah
+    // Kelas Kuliah & Peserta
     Route::resource('kelas-kuliah', \App\Http\Controllers\KelasKuliahController::class);
 
-    // Administration & RBAC
+    Route::post('peserta-kelas-kuliah/kolektif', [\App\Http\Controllers\PesertaKelasKuliahController::class, 'storeKolektif'])
+        ->name('peserta-kelas-kuliah.store-kolektif');
+
+    Route::resource('peserta-kelas-kuliah', \App\Http\Controllers\PesertaKelasKuliahController::class)
+        ->only(['store', 'destroy']);
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
     Route::post('users/{user}/assign-role', [\App\Http\Controllers\Admin\UserController::class, 'assignRole'])->name('users.assign-role');
 

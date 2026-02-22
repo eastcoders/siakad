@@ -16,11 +16,9 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         \App\Models\Dosen::observe(\App\Observers\DosenObserver::class);
+        \Illuminate\Pagination\Paginator::useBootstrapFive();
     }
 }

@@ -117,8 +117,8 @@
                     { data: 'kode_mk', name: 'mataKuliah.kode_mk' },
                     { data: 'nama_mk', name: 'mataKuliah.nama_mk' },
                     { data: 'nama_kelas_kuliah', name: 'nama_kelas_kuliah' },
-                    { data: 'bobot_sks', name: 'sks_mk' }, // Assuming sks_mk in kelas_kuliah or mata_kuliah
-                    { data: 'dosen_pengajar', name: 'dosen_pengajar', orderable: false, searchable: false }, // Needs relationship search logic if searchable
+                    { data: 'bobot_sks', name: 'sks_mk' },
+                    { data: 'dosen_pengajar', name: 'dosen_pengajar', orderable: false, searchable: false },
                     { data: 'peserta_kelas', name: 'peserta_kelas', orderable: false, searchable: false },
                 ],
                 order: [[3, 'desc'], [5, 'asc']], // Order by Semester desc, then Nama MK asc

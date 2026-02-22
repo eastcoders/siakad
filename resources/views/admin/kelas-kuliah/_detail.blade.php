@@ -44,33 +44,7 @@
     ];
     $hasDosenModalErrors = $errors->hasAny($modalErrorFields);
 
-    // Dummy data untuk tab Mahasiswa KRS / Peserta Kelas
-    $dummyMahasiswa = [
-        [
-            'status' => 'synced',
-            'nim' => '322241001',
-            'nama' => 'MUHAMMAD FARUK NURWAWI',
-            'jk' => 'L',
-            'prodi' => 'D3 - Teknik Informatika',
-            'angkatan' => 2024,
-        ],
-        [
-            'status' => 'local',
-            'nim' => '322241002',
-            'nama' => 'NADHIF SETYA MUFADDA',
-            'jk' => 'P',
-            'prodi' => 'D3 - Teknik Informatika',
-            'angkatan' => 2024,
-        ],
-        [
-            'status' => 'pending',
-            'nim' => '322241003',
-            'nama' => 'MAHASISWA PENDING PUSH',
-            'jk' => 'L',
-            'prodi' => 'D3 - Teknik Informatika',
-            'angkatan' => 2025,
-        ],
-    ];
+    // Note: daftarMahasiswa is passed from the controller for the Select dropdown
 @endphp
 
 {{-- SECTION 1: Informasi Kelas Kuliah --}}
@@ -361,22 +335,28 @@
 ])
 
 
+@include('admin.kelas-kuliah.partials.modal-peserta-kolektif', [
+    'kelasKuliah' => $kelasKuliah,
+    'daftarMahasiswa' => $daftarMahasiswa ?? collect(),
+])
+
+
 {{-- SECTION 2: Tabs Dosen Pengajar & Mahasiswa KRS --}}
 <div class="card">
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs nav-fill" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="tab-dosen-pengajar" data-bs-toggle="tab"
+                <button class="nav-link active fw-medium" id="tab-dosen-pengajar" data-bs-toggle="tab"
                     data-bs-target="#tab-pane-dosen-pengajar" type="button" role="tab"
                     aria-controls="tab-pane-dosen-pengajar" aria-selected="true">
-                    Dosen Pengajar
+                    <i class="ri-user-voice-line me-1"></i> Dosen Pengajar
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tab-mahasiswa-krs" data-bs-toggle="tab"
+                <button class="nav-link fw-medium" id="tab-mahasiswa-krs" data-bs-toggle="tab"
                     data-bs-target="#tab-pane-mahasiswa-krs" type="button" role="tab"
                     aria-controls="tab-pane-mahasiswa-krs" aria-selected="false">
-                    Mahasiswa KRS / Peserta Kelas
+                    <i class="ri-group-line me-1"></i> Mahasiswa KRS / Peserta Kelas
                 </button>
             </li>
         </ul>
@@ -539,75 +519,161 @@
             </div>
 
             {{-- TAB 2: Mahasiswa KRS / Peserta Kelas --}}
-            <div class="tab-pane fade" id="tab-pane-mahasiswa-krs" role="tabpanel"
-                aria-labelledby="tab-mahasiswa-krs">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
-                    <div class="flex-grow-1">
-                        <label class="form-label mb-1">Pilih NIM / Nama Mahasiswa</label>
-                        <select class="form-select" disabled>
-                            <option selected>Pilih NIM / Nama Mahasiswa</option>
-                        </select>
-                    </div>
-                    <div class="d-flex gap-2 mt-2 mt-md-0">
-                        <button type="button" class="btn btn-primary btn-sm disabled" disabled>
-                            <i class="ri-user-add-line me-1"></i> Tambah Peserta Kelas
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm disabled" disabled>
-                            <i class="ri-group-line me-1"></i> Input Kolektif Peserta
-                        </button>
+            <div class="tab-pane fade" id="tab-pane-mahasiswa-krs" role="tabpanel" aria-labelledby="tab-mahasiswa-krs">
+                
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="fw-semibold text-muted">
+                        Daftar mahasiswa yang telah didaftarkan dalam kelas ini.
                     </div>
                 </div>
 
-                <div class="table-responsive text-nowrap">
-                    <table class="table table-striped table-hover align-middle">
+                {{-- Form Tambah Individu & Tombol Kolektif --}}
+                <div class="card mb-4">
+    <div class="card-body">
+
+        <div class="row align-items-end g-3">
+
+            {{-- FORM INDIVIDU --}}
+            <div class="col-12">
+
+                <label class="form-label mb-2">
+                    <i class="ri-user-add-line me-1"></i>
+                    Tambah Peserta Individu
+                    <span class="text-danger">*</span>
+                </label>
+
+                <form action="{{ route('admin.peserta-kelas-kuliah.store') }}" 
+                      method="POST" 
+                      id="form-tambah-peserta">
+                    @csrf
+
+                    <input type="hidden" 
+                           name="id_kelas_kuliah" 
+                           value="{{ $kelasKuliah->id_kelas_kuliah }}">
+
+                    <div class="d-flex gap-2">
+
+                        <div class="flex-grow-1">
+                            <div class="input-group">
+
+                                <select class="form-select select2-mahasiswa"
+                                        name="riwayat_pendidikan_id"
+                                        required
+                                        data-placeholder="Cari berdasarkan NIM atau Nama Mahasiswa...">
+                                    <option></option>
+
+                                    @foreach($daftarMahasiswa as $mhsRiwayat)
+                                        <option value="{{ $mhsRiwayat->id }}">
+                                            {{ $mhsRiwayat->nim ?? '-' }} -
+                                            {{ $mhsRiwayat->mahasiswa->nama_mahasiswa ?? 'Unknown' }}
+                                            ({{ $mhsRiwayat->programStudi->nama_program_studi ?? '-' }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary px-4">
+                            <i class="ri-save-line me-1"></i>
+                            Simpan
+                        </button>
+
+                        <button type="button"
+                        class="btn btn-outline-primary px-4"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalKolektifPeserta">
+                    <i class="ri-group-add-line me-2"></i>
+                    Input Kolektif Peserta
+                </button>
+
+                    </div>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+                <div class="table-responsive text-nowrap mt-2">
+                    <table class="table table-bordered table-striped table-hover align-middle">
                         <thead class="table-light">
-                            <tr class="text-nowrap">
-                                <th>Status</th>
+                            <tr class="text-nowrap text-center">
+                                <th>Status Sync</th>
                                 <th>No</th>
                                 <th>NIM</th>
-                                <th>Nama Mahasiswa</th>
-                                <th>Jenis Kelamin</th>
-                                <th>Program Studi</th>
-                                <th>Angkatan</th>
+                                <th class="text-start">Nama Mahasiswa</th>
+                                <th>L/P</th>
+                                <th class="text-start">Program Studi</th>
+                                <th>Periode Masuk</th>
                                 <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($dummyMahasiswa as $index => $mhs)
-                                <tr>
+                            @forelse ($kelasKuliah->pesertaKelasKuliah as $index => $peserta)
+                                @php
+                                    $mhs = $peserta->riwayatPendidikan->mahasiswa;
+                                    $prodi = $peserta->riwayatPendidikan->programStudi;
+                                @endphp
+                                <tr class="text-center">
                                     <td>
                                         @php
                                             $badgeClass = 'bg-label-secondary';
-                                            $label = 'Unknown';
-                                            if ($mhs['status'] === 'synced') {
-                                                $badgeClass = 'bg-label-success';
-                                                $label = 'sudah sync';
-                                            } elseif ($mhs['status'] === 'local') {
+                                            $icon = '';
+                                            $label = $peserta->status_sinkronisasi;
+
+                                            if (in_array($peserta->status_sinkronisasi, ['pending', 'created_local'], true)) {
                                                 $badgeClass = 'bg-label-warning';
                                                 $label = 'lokal';
-                                            } elseif ($mhs['status'] === 'pending') {
-                                                $badgeClass = 'bg-label-info';
-                                                $label = 'perlu push';
+                                            } elseif ($peserta->status_sinkronisasi === 'synced') {
+                                                $badgeClass = 'bg-label-success';
+                                                $label = 'sudah sync';
+                                                $icon = '<i class="ri-check-line me-1"></i>';
+                                            } elseif ($peserta->status_sinkronisasi === 'updated_local') {
+                                                $badgeClass = 'bg-label-primary';
+                                                $label = 'updated_local';
+                                            } elseif ($peserta->status_sinkronisasi === 'deleted_local') {
+                                                $badgeClass = 'bg-label-danger';
+                                                $label = 'deleted_local';
+                                            } elseif ($peserta->status_sinkronisasi === 'push_failed') {
+                                                $badgeClass = 'bg-label-danger';
+                                                $label = 'push_failed';
                                             }
                                         @endphp
-                                        <span class="badge {{ $badgeClass }} rounded-pill text-capitalize">
-                                            {{ $label }}
+                                        <span class="badge {{ $badgeClass }} rounded-pill text-lowercase">
+                                            {!! $icon !!}{{ $label }}
                                         </span>
                                     </td>
                                     <td>{{ $index + 1 }}</td>
-                                    <td>{{ $mhs['nim'] }}</td>
-                                    <td>{{ $mhs['nama'] }}</td>
-                                    <td>{{ $mhs['jk'] }}</td>
-                                    <td>{{ $mhs['prodi'] }}</td>
-                                    <td>{{ $mhs['angkatan'] }}</td>
+                                    <td><span class="fw-semibold text-primary w-100 d-block">{{ $peserta->riwayatPendidikan->nim ?? '-' }}</span></td>
+                                    <td class="text-start fw-medium">{{ $mhs->nama ?? 'Unknown' }}</td>
+                                    <td>{{ $mhs->jenis_kelamin ?? '-' }}</td>
+                                    <td class="text-start">
+                                        @if($prodi)
+                                            {{ $prodi->nama_program_studi }} <span class="text-muted small">({{ $prodi->nama_jenjang_pendidikan }})</span>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td>{{ $peserta->riwayatPendidikan->id_periode_masuk ?? '-' }}</td>
                                     <td>
-                                        <button type="button" class="btn btn-icon btn-sm btn-outline-danger"
-                                            disabled>
-                                            <i class="ri-delete-bin-line"></i>
-                                        </button>
+                                        <form action="{{ route('admin.peserta-kelas-kuliah.destroy', $peserta->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Keluarkan Peserta" onclick="return confirm('Yakin ingin mengeluarkan {{ $mhs->nama ?? 'Mahasiswa ini' }} dari kelas?')">
+                                                <i class="ri-delete-bin-line"></i>
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        Belum ada peserta yang didaftarkan di kelas ini.
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -618,10 +684,16 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('assets/vendor/libs/select2/select2.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-rowgroup-bs5/rowgroup.bootstrap5.css') }}" />
 @endpush
 
 @push('scripts')
     <script src="{{ asset('assets/vendor/libs/select2/select2.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
     <script>
         $(function() {
             // Initialize Select2 for Program Studi and Mata Kuliah
@@ -632,6 +704,13 @@
                     dropdownParent: $this.parent(),
                     width: '100%'
                 });
+            });
+
+            // Initialize Select2 for Mahasiswa (Peserta Kelas tab)
+            $('.select2-mahasiswa').select2({
+                placeholder: 'Cari berdasarkan NIM atau Nama Mahasiswa...',
+                width: '100%',
+                allowClear: true
             });
 
             // Specific initialization for Modal Dosen (if present)

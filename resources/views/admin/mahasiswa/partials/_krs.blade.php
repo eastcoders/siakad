@@ -3,20 +3,47 @@
         <h5 class="mb-0">KRS Mahasiswa</h5>
     </div>
     <div class="card-body">
-        <div class="alert alert-secondary d-flex align-items-center" role="alert">
-            <span class="alert-icon text-secondary me-2">
-                <i class="ri-information-line ri-lg"></i>
-            </span>
-            Menampilkan Data berdasarkan semester : <strong>2025/2026 Genap</strong>
+        <div class="alert alert-secondary d-flex align-items-center mb-4" role="alert">
+            <i class="ri-information-line fs-5 me-2"></i>
+            <div>Menampilkan Data berdasarkan semester :
+                <strong>{{ $activeSemester ? $activeSemester->nama_semester : 'Belum Ada Semester Aktif' }}</strong>
+            </div>
         </div>
 
-        <div class="d-flex justify-content-end mb-3 gap-2">
-            <button class="btn btn-info btn-sm">
-                <i class="ri-refresh-line me-1"></i> UPDATE KRS
-            </button>
-            <button class="btn btn-success btn-sm">
-                <i class="ri-printer-line me-1"></i> CETAK KRS
-            </button>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+            <div class="flex-grow-1" style="max-width: 600px;">
+                @if(isset($riwayatPendidikan) && isset($activeSemester))
+                    <form action="{{ route('admin.peserta-kelas-kuliah.store') }}" method="POST" class="d-flex gap-2">
+                        @csrf
+                        <input type="hidden" name="riwayat_pendidikan_id" value="{{ $riwayatPendidikan->id }}">
+
+                        <div class="flex-grow-1">
+                            <select name="id_kelas_kuliah" class="form-select select2-kelas " required>
+                                <option value=""></option>
+                                @foreach($daftarKelas as $kelas)
+                                    <option value="{{ $kelas->id_kelas_kuliah }}">
+                                        {{ $kelas->mataKuliah->kode_mk ?? '-' }} -
+                                        {{ $kelas->mataKuliah->nama_mk ?? '-' }}
+                                        (Kelas: {{ $kelas->nama_kelas_kuliah }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary text-nowrap">
+                            <i class="ri-add-circle-line me-1"></i> Tambah Kelas
+                        </button>
+                    </form>
+                @else
+                    <div class="text-muted fst-italic small"><i class="ri-error-warning-line text-warning me-1"></i> Tidak
+                        dapat menambah kelas. Pastikan Mahasiswa memiliki Riwayat Pendidikan aktif.</div>
+                @endif
+            </div>
+
+            <div class="d-flex gap-2 mt-2 mt-md-0">
+                <button class="btn btn-success btn-sm text-nowrap">
+                    <i class="ri-printer-line me-1"></i> CETAK KRS
+                </button>
+            </div>
         </div>
 
         <div class="table-responsive text-nowrap mb-4">
@@ -32,38 +59,60 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        $dummyKRS = [
-                            ['code' => 'TIK207', 'name' => 'ALJABAR LINIER DAN MATRIK', 'class' => 'TI2', 'sks' => 3.00],
-                            ['code' => 'TIK209', 'name' => 'KONSEP BASIS DATA', 'class' => 'TI2', 'sks' => 2.00],
-                            ['code' => 'TIK210', 'name' => 'STRUKTUR DATA DAN LOGARITMA', 'class' => 'TI2', 'sks' => 3.00],
-                            ['code' => 'TIK212', 'name' => 'DESAIN WEB', 'class' => 'TI2', 'sks' => 3.00],
-                            ['code' => 'TIK213', 'name' => 'PROYEK 1 (Hardware dan Jaringan)', 'class' => 'TI2', 'sks' => 3.00],
-                            ['code' => 'TIK425', 'name' => 'GRAFIKA KOMPUTER', 'class' => 'TI2', 'sks' => 3.00],
-                            ['code' => 'TIK532', 'name' => 'APLIKASI SERVER', 'class' => 'TI2', 'sks' => 3.00],
-                        ];
-                        $totalSks = collect($dummyKRS)->sum('sks');
-                    @endphp
-
-                    @foreach($dummyKRS as $index => $mk)
+                    @forelse($pesertaKelasKuliah as $index => $peserta)
+                        @php
+                            $kelas = $peserta->kelasKuliah;
+                            $mk = $kelas ? $kelas->mataKuliah : null;
+                        @endphp
                         <tr>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-icon btn-text-danger rounded-pill"><i
-                                        class="ri-delete-bin-line"></i></button>
+                                <form action="{{ route('admin.peserta-kelas-kuliah.destroy', $peserta->id) }}" method="POST"
+                                    class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-icon btn-text-danger rounded-pill"
+                                        onclick="return confirm('Yakin ingin membatalkan KRS untuk mata kuliah ini?')">
+                                        <i class="ri-delete-bin-line"></i>
+                                    </button>
+                                </form>
                             </td>
-                            <td>{{ $index + 1 }}</td>
-                            <td>{{ $mk['code'] }}</td>
-                            <td>{{ $mk['name'] }}</td>
-                            <td class="text-center">{{ $mk['class'] }}</td>
-                            <td class="text-center">{{ number_format($mk['sks'], 2) }}</td>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td><span class="fw-semibold text-primary">{{ $mk ? $mk->kode_mk : '-' }}</span></td>
+                            <td>{{ $mk ? $mk->nama_mk : '-' }}</td>
+                            <td class="text-center">{{ $kelas ? $kelas->nama_kelas_kuliah : '-' }}</td>
+                            <td class="text-center">{{ number_format($kelas ? ($kelas->sks_mk ?? 0) : 0, 2) }}</td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Mahasiswa belum mengisi KRS pada semester
+                                ini.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
 
         <div class="alert alert-secondary p-3 mb-0">
-            <strong>TOTAL SKS MAHASISWA ADALAH : {{ $totalSks }} SKS</strong>
+            <strong>TOTAL SKS MAHASISWA ADALAH : {{ $totalSks ?? 0 }} SKS</strong>
         </div>
     </div>
 </div>
+
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/select2/select2.css') }}" />
+@endpush
+
+@push('partial_scripts')
+    <script src="{{ asset('assets/vendor/libs/select2/select2.js') }}"></script>
+    <script>
+        $(function () {
+            if ($('.select2-kelas').length) {
+                $('.select2-kelas').select2({
+                    placeholder: 'Ketik Kode / Nama Kelas Kuliah...',
+                    width: '100%',
+                    allowClear: true
+                });
+            }
+        });
+    </script>
+@endpush
