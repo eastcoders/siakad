@@ -192,7 +192,59 @@
                     <div data-i18n="Kemahasiswaan">Kemahasiswaan</div>
                 </a>
             </li>
+            <li class="menu-item {{ request()->routeIs('admin.keuangan.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.keuangan.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-money-dollar-circle-line"></i>
+                    <div data-i18n="Keuangan">Keuangan</div>
+                </a>
+            </li>
 
+        @endif
+
+        <!-- ============================================== -->
+        <!-- ROLE: ADMIN ATAU KEUANGAN                      -->
+        <!-- ============================================== -->
+        @if(auth()->check() && (auth()->user()->hasRole('admin') || auth()->user()->hasRole('Keuangan')))
+            <!-- Modul Keuangan -->
+            <li class="menu-header mt-5 small text-uppercase">
+                <span class="menu-header-text">Modul Keuangan</span>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.keuangan-dashboard') ? 'active' : '' }}">
+                <a href="{{ route('admin.keuangan-dashboard') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-dashboard-3-line"></i>
+                    <div data-i18n="Dashboard Keuangan">Dashboard Keuangan</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.keuangan-modul.komponen-biaya.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.keuangan-modul.komponen-biaya.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-file-list-2-line"></i>
+                    <div data-i18n="Komponen Biaya">Komponen Biaya</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.keuangan-modul.tagihan.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.keuangan-modul.tagihan.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-bill-line"></i>
+                    <div data-i18n="Tagihan Mahasiswa">Tagihan Mahasiswa</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.keuangan-modul.verifikasi.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.keuangan-modul.verifikasi.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-checkbox-circle-line"></i>
+                    <div data-i18n="Verifikasi Pembayaran">Verifikasi Pembayaran</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.laporan-keuangan.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.laporan-keuangan.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-file-excel-2-line"></i>
+                    <div data-i18n="Laporan">Laporan</div>
+                </a>
+            </li>
+        @endif
+
+        <!-- ============================================== -->
+        <!-- KEMBALI KE ROLE: ADMIN                         -->
+        <!-- ============================================== -->
+        @if(auth()->check() && auth()->user()->hasRole('admin'))
             <!-- Data Master / Referensi -->
             <li class="menu-header mt-5 small text-uppercase">
                 <span class="menu-header-text">Data Master</span>
@@ -266,12 +318,12 @@
                 </a>
             </li>
         @else
-            <!-- Dashboard Default System (Hanya untuk non-admin) -->
             <li
-                class="menu-item {{ request()->routeIs(['dashboard', 'dosen.dashboard', 'mahasiswa.dashboard']) ? 'active' : '' }}">
+                class="menu-item {{ request()->routeIs(['dashboard', 'dosen.dashboard', 'mahasiswa.dashboard', 'pegawai.dashboard']) ? 'active' : '' }}">
                 @php
                     $dashboardRoute = auth()->user()->hasRole('Dosen') ? route('dosen.dashboard') :
-                        (auth()->user()->hasRole('Mahasiswa') ? route('mahasiswa.dashboard') : url('/dashboard'));
+                        (auth()->user()->hasRole('Pegawai') ? route('pegawai.dashboard') :
+                            (auth()->user()->hasRole('Mahasiswa') ? route('mahasiswa.dashboard') : url('/dashboard')));
                 @endphp
                 <a href="{{ $dashboardRoute }}" class="menu-link">
                     <i class="menu-icon tf-icons ri-home-smile-line"></i>
@@ -305,7 +357,15 @@
                 </a>
             </li>
 
-            {{-- ── Ruang Dosen PA (Pembimbing Akademik) ─────────── --}}
+            <li class="menu-header mt-5 small text-uppercase">
+                <span class="menu-header-text">Layanan</span>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <i class="menu-icon tf-icons ri-survey-line"></i>
+                    <div data-i18n="Kuisioner AMI">Kuisioner AMI</div>
+                </a>
+            </li>
             @can('is-academic-advisor')
                 <li class="menu-header mt-5 small text-uppercase">
                     <span class="menu-header-text">Pembimbing Akademik</span>
@@ -354,6 +414,17 @@
                 </li>
             @endif
 
+        @elseif(session('active_role') == 'Pegawai')
+            <li class="menu-header mt-5 small text-uppercase">
+                <span class="menu-header-text">Ruang Pegawai</span>
+            </li>
+            <li class="menu-item">
+                <a href="#" class="menu-link">
+                    <i class="menu-icon tf-icons ri-survey-line"></i>
+                    <div data-i18n="Kuisioner AMI">Kuisioner AMI</div>
+                </a>
+            </li>
+
         @elseif(session('active_role') == 'Mahasiswa')
             <li class="menu-header mt-5 small text-uppercase">
                 <span class="menu-header-text">Ruang Mahasiswa</span>
@@ -392,6 +463,12 @@
                 <a href="{{ route('mahasiswa.kuisioner.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons ri-survey-line"></i>
                     <div data-i18n="Isi Kuesioner">Isi Kuesioner</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('mahasiswa.keuangan.*') ? 'active' : '' }}">
+                <a href="{{ route('mahasiswa.keuangan.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-money-dollar-circle-line"></i>
+                    <div data-i18n="Keuangan Saya">Keuangan Saya</div>
                 </a>
             </li>
         @endif

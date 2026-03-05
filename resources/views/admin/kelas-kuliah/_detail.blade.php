@@ -15,8 +15,13 @@
                 'is_deleted_server' => (bool) $row->is_deleted_server,
                 'is_deleted_local' => (bool) $row->is_deleted_local,
                 'dosen' => $row->dosen,
+                'nidn' => $row->dosen->nidn ?? '-',
+                'nip' => $row->dosen->nip ?? '-',
+                'dosen_nama' => $row->dosen->nama ?? '-',
+                'nama_admin_display' => $row->nama_admin_display,
                 'dosen_alias' => $row->dosen_alias,
                 'dosen_alias_lokal' => $row->dosenAliasLokal,
+                'id_dosen_alias_lokal' => $row->id_dosen_alias_lokal,
                 'bobot_sks' => $row->sks_substansi,
                 'jumlah_rencana_pertemuan' => $row->rencana_minggu_pertemuan,
                 'jumlah_realisasi_pertemuan' => $row->realisasi_minggu_pertemuan,
@@ -439,8 +444,8 @@
                                         </span>
                                     </td>
                                     <td class="text-center">{{ $index + 1 }}</td>
-                                    <td class="text-center">{{ $row->dosen->nidn ?? '-' }}</td>
-                                    <td class="text-center">{{ $row->dosen->nip ?? '-' }}</td>
+                                    <td class="text-center">{{ $row->nidn }}</td>
+                                    <td class="text-center">{{ $row->nip }}</td>
                                     <td>
                                         {{ $row->nama_admin_display ?? '-' }}
                                     </td>
@@ -457,8 +462,16 @@
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center gap-1">
                                             @if ($row->can_delete)
-                                                {{-- Placeholder Edit - Yellow in screenshot --}}
-                                                <button type="button" class="btn btn-icon btn-sm btn-outline-warning disabled" disabled>
+                                                <button type="button" class="btn btn-icon btn-sm btn-outline-warning btn-edit-dosen"
+                                                    onclick="openEditDosenModal({
+                                                        id: {{ $row->id }},
+                                                        dosen_nama: '{{ addslashes($row->dosen_nama) }}',
+                                                        id_dosen_alias_lokal: '{{ $row->id_dosen_alias_lokal ?? '' }}',
+                                                        bobot_sks: {{ (float) $row->bobot_sks }},
+                                                        jenis_evaluasi: '{{ $row->jenis_evaluasi }}',
+                                                        jumlah_rencana_pertemuan: {{ (int) $row->jumlah_rencana_pertemuan }},
+                                                        jumlah_realisasi_pertemuan: {{ $row->jumlah_realisasi_pertemuan !== null ? (int) $row->jumlah_realisasi_pertemuan : 'null' }}
+                                                    })">
                                                     <i class="ri-edit-2-line"></i>
                                                 </button>
                                                 <form action="{{ route('kelas.dosen.destroy', $row->id) }}"

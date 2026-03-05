@@ -21,7 +21,7 @@ class PegawaiObserver
                 'name' => $pegawai->nama_lengkap,
                 'email' => $pegawai->email ?? strtolower(str_replace(' ', '', $pegawai->nip)) . '@apps.local',
                 'username' => $pegawai->nip,
-                'password' => Hash::make($pegawai->nip . '@Polsa') // Default password
+                'password' => Hash::make('password123') // Default password
             ]);
 
             // Assign Default Role Pegawai

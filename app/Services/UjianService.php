@@ -6,6 +6,7 @@ use App\Models\JadwalUjian;
 use App\Models\PesertaUjian;
 use App\Models\PesertaKelasKuliah;
 use App\Models\PresensiMahasiswa;
+use App\Models\RiwayatPendidikan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -65,6 +66,23 @@ class UjianService
                 $keterangan = null;
                 if (!$isEligible) {
                     $keterangan = "Kehadiran " . $jadwalUjian->tipe_ujian . " (Pert. {$rangePertemuan[0]}-{$rangePertemuan[1]}): {$persentase}% < {$minPersentase}%";
+                }
+
+                // 3. Gatekeeping Keuangan: cek tagihan wajib ujian
+                if ($isEligible) {
+                    $riwayat = RiwayatPendidikan::find($pkk->riwayat_pendidikan_id);
+                    if ($riwayat) {
+                        $tagihanService = app(TagihanService::class);
+                        $idSemester = $kelasKuliah->id_semester;
+                        if (!$tagihanService->isUjianEligible($riwayat->id_mahasiswa, $idSemester)) {
+                            $isEligible = false;
+                            $keterangan = "Tagihan wajib ujian semester {$idSemester} belum lunas.";
+                            Log::warning('GATEKEEPING: Ujian ditolak karena tagihan belum lunas', [
+                                'riwayat_pendidikan_id' => $pkk->riwayat_pendidikan_id,
+                                'semester' => $idSemester,
+                            ]);
+                        }
+                    }
                 }
 
                 // 3. Simpan/Update peserta ujian (updateOrCreate untuk idempotency)

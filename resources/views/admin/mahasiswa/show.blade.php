@@ -6,7 +6,24 @@
     <div class="row">
         <!-- Header -->
         <div class="col-12 mb-4">
-            <h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light">Mahasiswa /</span> Detail Mahasiswa</h4>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                <h4 class="fw-bold py-3 mb-0"><span class="text-muted fw-light">Mahasiswa /</span> Detail Mahasiswa</h4>
+                @if(isset($isKrsEligible) && isset($isUjianEligible))
+                    <div class="d-flex gap-2 mt-2 mt-md-0">
+                        @if(!$isKrsEligible)
+                            <span class="badge bg-label-danger fs-6"><i class="ri-forbid-2-line me-1"></i> Terblokir KRS</span>
+                        @else
+                            <span class="badge bg-label-success fs-6"><i class="ri-check-double-line me-1"></i> KRS Aktif</span>
+                        @endif
+
+                        @if(!$isUjianEligible)
+                            <span class="badge bg-label-danger fs-6"><i class="ri-forbid-2-line me-1"></i> Terblokir Ujian</span>
+                        @else
+                            <span class="badge bg-label-success fs-6"><i class="ri-check-double-line me-1"></i> Ujian Aktif</span>
+                        @endif
+                    </div>
+                @endif
+            </div>
         </div>
 
         <!-- Submenu -->

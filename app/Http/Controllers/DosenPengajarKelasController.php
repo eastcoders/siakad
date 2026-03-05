@@ -83,6 +83,99 @@ class DosenPengajarKelasController extends Controller
     }
 
     /**
+     * Update Dosen Pengajar.
+     *
+     * Logika sync: Jika hanya field alias lokal yang berubah,
+     * TIDAK menandai record sebagai updated_local karena alias lokal
+     * bukan field yang di-push ke server.
+     */
+    public function update(\Illuminate\Http\Request $request, DosenPengajarKelasKuliah $dosenPengajar): RedirectResponse
+    {
+        $request->validate([
+            'bobot_sks' => 'required|numeric|min:0',
+            'jumlah_rencana_pertemuan' => 'required|integer|min:0',
+            'jumlah_realisasi_pertemuan' => 'nullable|integer|min:0',
+            'jenis_evaluasi' => 'required|in:1,2,3,4',
+            'id_dosen_alias_lokal' => 'nullable|exists:dosens,id',
+        ]);
+
+        $kelasKuliah = KelasKuliah::where('id_kelas_kuliah', $dosenPengajar->id_kelas_kuliah)->first();
+        $kelasId = $kelasKuliah ? $kelasKuliah->id : 0;
+
+        try {
+            DB::transaction(function () use ($request, $dosenPengajar): void {
+                $record = DosenPengajarKelasKuliah::lockForUpdate()->findOrFail($dosenPengajar->id);
+
+                // Field yang akan di-push ke server (perubahan di sini = perlu sync)
+                $serverBoundFields = [
+                    'sks_substansi' => (float) $request->bobot_sks,
+                    'rencana_minggu_pertemuan' => (int) $request->jumlah_rencana_pertemuan,
+                    'realisasi_minggu_pertemuan' => $request->jumlah_realisasi_pertemuan !== null ? (int) $request->jumlah_realisasi_pertemuan : null,
+                    'jenis_evaluasi' => $request->jenis_evaluasi,
+                ];
+
+                // Field alias lokal (perubahan di sini = TIDAK perlu sync)
+                $aliasFields = [
+                    'id_dosen_alias_lokal' => $request->id_dosen_alias_lokal ?: null,
+                ];
+
+                // Cek apakah ada perubahan pada field server-bound
+                $hasServerBoundChanges = false;
+                foreach ($serverBoundFields as $key => $newValue) {
+                    $oldValue = $record->$key;
+                    // Normalisasi untuk perbandingan
+                    if (is_numeric($oldValue) && is_numeric($newValue)) {
+                        if ((float) $oldValue !== (float) $newValue) {
+                            $hasServerBoundChanges = true;
+                            break;
+                        }
+                    } elseif ($oldValue != $newValue) {
+                        $hasServerBoundChanges = true;
+                        break;
+                    }
+                }
+
+                // Update semua field (server-bound + alias)
+                $updateData = array_merge($serverBoundFields, $aliasFields);
+
+                // Hanya tandai sebagai updated_local jika:
+                // 1. Ada perubahan pada field server-bound
+                // 2. Data berasal dari server (atau pernah tersinkronisasi)
+                if ($hasServerBoundChanges) {
+                    $isSyncedBefore = in_array($record->status_sinkronisasi, [
+                        DosenPengajarKelasKuliah::STATUS_SYNCED,
+                        DosenPengajarKelasKuliah::STATUS_PUSH_SUCCESS,
+                    ], true);
+
+                    if ($record->sumber_data === 'server' || $isSyncedBefore) {
+                        $updateData['status_sinkronisasi'] = DosenPengajarKelasKuliah::STATUS_UPDATED_LOCAL;
+                        $updateData['sync_action'] = 'update';
+                        $updateData['is_local_change'] = true;
+                    }
+                }
+                // Jika hanya alias berubah, status_sinkronisasi TIDAK diubah
+
+                $record->update($updateData);
+
+                \Illuminate\Support\Facades\Log::info("CRUD_UPDATE: DosenPengajarKelasKuliah diupdate", [
+                    'id' => $record->id,
+                    'has_server_changes' => $hasServerBoundChanges,
+                    'alias_only' => !$hasServerBoundChanges,
+                ]);
+            });
+        } catch (Throwable $exception) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal mengupdate dosen pengajar: ' . $exception->getMessage());
+        }
+
+        return redirect()
+            ->route('admin.kelas-kuliah.show', $kelasId)
+            ->with('success', 'Dosen pengajar berhasil diperbarui.');
+    }
+
+    /**
      * Remove the specified Dosen Pengajar.
      */
     public function destroy(DosenPengajarKelasKuliah $dosenPengajar): RedirectResponse

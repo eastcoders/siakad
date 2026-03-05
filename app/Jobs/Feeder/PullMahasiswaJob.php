@@ -30,6 +30,7 @@ class PullMahasiswaJob extends BaseSyncJob
                 'handphone' => $row['handphone'],
                 'email' => $row['email'],
                 'status_sinkronisasi' => 'synced',
+                'is_synced' => true,
                 'last_synced_at' => Carbon::now(),
                 'sumber_data' => 'server'
             ]

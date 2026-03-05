@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Mahasiswa;
 use App\Models\RiwayatPendidikan;
@@ -10,7 +9,6 @@ use App\Models\ProgramStudi;
 use App\Models\Semester;
 use App\Models\ReferenceWilayah;
 use Faker\Factory as Faker;
-use Illuminate\Support\Str;
 
 class DummyMahasiswaSeeder extends Seeder
 {

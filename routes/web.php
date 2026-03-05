@@ -26,6 +26,7 @@ Route::middleware(['auth'])->group(function () {
             'Dosen' => 'dosen.dashboard',
             'Mahasiswa' => 'mahasiswa.dashboard',
             'Kaprodi' => 'kaprodi.dashboard',
+            'Pegawai' => 'pegawai.dashboard',
             default => null,
         };
 
@@ -58,6 +59,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('mahasiswa/toggle-tipe-kelas', [MahasiswaController::class, 'toggleTipeKelas'])->name('mahasiswa.toggle-tipe-kelas');
     Route::post('mahasiswa/bulk-tipe-kelas', [MahasiswaController::class, 'bulkTipeKelas'])->name('mahasiswa.bulk-tipe-kelas');
     Route::post('mahasiswa/init-tipe-kelas', [MahasiswaController::class, 'initTipeKelas'])->name('mahasiswa.init-tipe-kelas');
+    Route::post('mahasiswa/init-all-accounts', [MahasiswaController::class, 'initAllAccounts'])->name('mahasiswa.init-all-accounts');
     Route::resource('mahasiswa', MahasiswaController::class);
 
     // Riwayat Pendidikan CRUD (store, edit, update, destroy)
@@ -127,6 +129,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('perpustakaan', \App\Http\Controllers\Admin\Jabatan\PerpustakaanController::class)->except(['create', 'edit', 'show']);
     Route::resource('personalia', \App\Http\Controllers\Admin\Jabatan\PersonaliaController::class)->except(['create', 'edit', 'show']);
     Route::resource('kemahasiswaan', \App\Http\Controllers\Admin\Jabatan\KemahasiswaanController::class)->except(['create', 'edit', 'show']);
+    Route::resource('keuangan', \App\Http\Controllers\Admin\Jabatan\KeuanganController::class)->except(['create', 'edit', 'show']);
     Route::resource('direktur', \App\Http\Controllers\Admin\Jabatan\DirekturController::class)->except(['create', 'edit', 'show']);
     Route::resource('wakil-direktur', \App\Http\Controllers\Admin\Jabatan\WakilDirekturController::class)->except(['create', 'edit', 'show']);
 
@@ -149,11 +152,43 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/dispatch', 'dispatchSync')->name('dispatch');
         Route::get('/batch/{batchId}', 'checkBatch')->name('batch');
     });
+});
 
+// ==========================================
+// ROLE: KEUANGAN ATAU ADMIN
+// ==========================================
+Route::middleware(['auth', 'role:admin|Keuangan'])->prefix('keuangan')->name('admin.')->group(function () {
+
+    // Dashboard Keuangan
+    Route::get('/dashboard', [\App\Http\Controllers\Keuangan\DashboardKeuanganController::class, 'index'])->name('keuangan-dashboard');
+    Route::get('/dashboard/chart', [\App\Http\Controllers\Keuangan\DashboardKeuanganController::class, 'chartData'])->name('keuangan-dashboard.chart');
+
+    // Modul Keuangan (Existing - tetap menggunakan name prefix admin. agar view tidak patah)
+    Route::prefix('modul-keuangan')->name('keuangan-modul.')->group(function () {
+        Route::resource('komponen-biaya', \App\Http\Controllers\Admin\Keuangan\KomponenBiayaController::class)->except(['create', 'edit', 'show']);
+        Route::resource('tagihan', \App\Http\Controllers\Admin\Keuangan\TagihanController::class)->except(['create', 'edit']);
+
+        // Fitur Potongan
+        Route::post('tagihan/{tagihan}/potongan', [\App\Http\Controllers\Keuangan\PotonganController::class, 'store'])->name('tagihan.potongan');
+
+        Route::get('verifikasi', [\App\Http\Controllers\Admin\Keuangan\VerifikasiPembayaranController::class, 'index'])->name('verifikasi.index');
+        Route::get('verifikasi/{pembayaran}', [\App\Http\Controllers\Admin\Keuangan\VerifikasiPembayaranController::class, 'show'])->name('verifikasi.show');
+        Route::post('verifikasi/{pembayaran}/approve', [\App\Http\Controllers\Admin\Keuangan\VerifikasiPembayaranController::class, 'approve'])->name('verifikasi.approve');
+        Route::post('verifikasi/{pembayaran}/reject', [\App\Http\Controllers\Admin\Keuangan\VerifikasiPembayaranController::class, 'reject'])->name('verifikasi.reject');
+        Route::get('verifikasi/{pembayaran}/bukti', [\App\Http\Controllers\Admin\Keuangan\VerifikasiPembayaranController::class, 'downloadBukti'])->name('verifikasi.bukti');
+        Route::get('search-mahasiswa', [\App\Http\Controllers\Admin\Keuangan\TagihanController::class, 'searchMahasiswa'])->name('search-mahasiswa');
+    });
+
+    // Fitur Laporan
+    Route::prefix('laporan')->name('laporan-keuangan.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Keuangan\LaporanKeuanganController::class, 'index'])->name('index');
+        Route::post('/export', [\App\Http\Controllers\Keuangan\LaporanKeuanganController::class, 'export'])->name('export');
+    });
 });
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::post('kelas-dosen', [DosenPengajarKelasController::class, 'store'])->name('kelas.dosen.store');
+    Route::put('kelas-dosen/{dosen_pengajar}', [DosenPengajarKelasController::class, 'update'])->name('kelas.dosen.update');
     Route::delete('kelas-dosen/{dosen_pengajar}', [DosenPengajarKelasController::class, 'destroy'])->name('kelas.dosen.destroy');
 
     // Route untuk Peserta Kelas Kuliah (KRS)
@@ -225,6 +260,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
 Route::middleware(['auth', 'role:Mahasiswa'])->prefix('mahasiswa')->name('mahasiswa.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Mahasiswa\DashboardController::class, 'index'])->name('dashboard');
+
+    // Notifikasi
+    Route::get('/notifikasi', [\App\Http\Controllers\Mahasiswa\NotifikasiController::class, 'index'])->name('notifikasi.index');
+    Route::post('/notifikasi/{id}/read', [\App\Http\Controllers\Mahasiswa\NotifikasiController::class, 'markAsRead'])->name('notifikasi.read');
+    Route::post('/notifikasi/read-all', [\App\Http\Controllers\Mahasiswa\NotifikasiController::class, 'markAllAsRead'])->name('notifikasi.read-all');
+
     Route::get('/kelas', [\App\Http\Controllers\Mahasiswa\DaftarKelasMahasiswaController::class, 'index'])->name('kelas.index');
     Route::get('/kelas/{id}', [\App\Http\Controllers\Mahasiswa\DaftarKelasMahasiswaController::class, 'show'])->name('kelas.show');
     Route::get('/jadwal', [\App\Http\Controllers\Mahasiswa\JadwalController::class, 'index'])->name('jadwal.index');
@@ -246,6 +287,17 @@ Route::middleware(['auth', 'role:Mahasiswa'])->prefix('mahasiswa')->name('mahasi
     Route::get('kuisioner', [\App\Http\Controllers\Mahasiswa\KuisionerController::class, 'index'])->name('kuisioner.index');
     Route::get('kuisioner/{kuisioner}', [\App\Http\Controllers\Mahasiswa\KuisionerController::class, 'show'])->name('kuisioner.show');
     Route::post('kuisioner/{kuisioner}', [\App\Http\Controllers\Mahasiswa\KuisionerController::class, 'store'])->name('kuisioner.store');
+
+    // Keuangan Mahasiswa
+    Route::prefix('keuangan')->name('keuangan.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Mahasiswa\KeuanganMahasiswaController::class, 'index'])->name('index');
+        Route::get('/{tagihan}', [\App\Http\Controllers\Mahasiswa\KeuanganMahasiswaController::class, 'show'])->name('show');
+        Route::post('/{tagihan}/upload', [\App\Http\Controllers\Mahasiswa\KeuanganMahasiswaController::class, 'uploadBukti'])->name('upload');
+    });
+});
+
+Route::middleware(['auth', 'role:Pegawai'])->prefix('pegawai')->name('pegawai.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Pegawai\DashboardController::class, 'index'])->name('dashboard');
 });
 
 Route::middleware(['auth', 'role:Dosen'])->prefix('dosen')->name('dosen.')->group(function () {

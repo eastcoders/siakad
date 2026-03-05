@@ -40,7 +40,7 @@ class FeederAuthService
         }
 
         try {
-            $response = Http::timeout(30)->post($url, [
+            $response = Http::connectTimeout(60)->timeout(60)->post($url, [
                 'act' => 'GetToken',
                 'username' => $username,
                 'password' => $password,

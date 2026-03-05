@@ -195,8 +195,79 @@ class MahasiswaController extends Controller
         return back()->with('success', "Berhasil membuat {$count} akun pengguna mahasiswa secara massal.");
     }
 
+    /**
+     * Inisialisasi akun untuk SEMUA mahasiswa yang belum memiliki user.
+     * Username = NIM, Password = NIM.
+     */
+    public function initAllAccounts(\App\Services\MahasiswaAccountGenerationService $service)
+    {
+        try {
+            $mahasiswas = Mahasiswa::whereNull('user_id')
+                ->with('riwayatAktif')
+                ->get();
+
+            $created = 0;
+            $skipped = 0;
+            $errors = [];
+
+            foreach ($mahasiswas as $mhs) {
+                try {
+                    $result = $service->generate($mhs);
+                    if ($result) {
+                        $created++;
+                    } else {
+                        $skipped++;
+                    }
+                } catch (\Exception $e) {
+                    $skipped++;
+                    // Batasi log error hanya 5 pertama
+                    if (count($errors) < 5) {
+                        $errors[] = "{$mhs->nama_mahasiswa}: {$e->getMessage()}";
+                    }
+                }
+            }
+
+            Log::info("CRUD_CREATE: Inisialisasi Akun Massal Mahasiswa", [
+                'created' => $created,
+                'skipped' => $skipped,
+                'errors_sample' => $errors,
+            ]);
+
+            $msg = "Berhasil membuat {$created} akun mahasiswa.";
+            if ($skipped > 0) {
+                $msg .= " ({$skipped} mahasiswa di-skip karena sudah punya akun atau NIM tidak valid.)";
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $msg,
+                'created' => $created,
+                'skipped' => $skipped,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("SYSTEM_ERROR: Gagal inisialisasi akun massal", [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Gagal: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function index(Request $request)
     {
+        // Default filter: tahun angkatan terakhir yang ditambahkan (kecuali user pilih filter lain atau 'all')
+        $latestPeriodeMasuk = \App\Models\RiwayatPendidikan::orderBy('id_periode_masuk', 'desc')
+            ->value('id_periode_masuk');
+
+        $selectedPeriode = $request->periode_masuk;
+        $selectedProdi = $request->prodi;
+        $showAll = $request->has('all'); // ?all=1 untuk menampilkan semua
+
+        // Jika belum ada filter dari user dan bukan request "all", gunakan tahun angkatan terakhir
+        if (!$request->filled('periode_masuk') && !$showAll && $latestPeriodeMasuk) {
+            $selectedPeriode = $latestPeriodeMasuk;
+        }
+
         $query = Mahasiswa::with(['riwayatAktif.prodi', 'riwayatAktif.semester', 'agama'])
             ->addSelect([
                 'total_sks' => \App\Models\PesertaKelasKuliah::selectRaw('COALESCE(SUM(kelas_kuliah.sks_mk), 0)')
@@ -206,9 +277,9 @@ class MahasiswaController extends Controller
             ]);
 
         // Filter berdasarkan Tahun Angkatan / Periode Masuk
-        if ($request->filled('periode_masuk')) {
-            $query->whereHas('riwayatAktif', function ($q) use ($request) {
-                $q->where('id_periode_masuk', $request->periode_masuk);
+        if ($selectedPeriode) {
+            $query->whereHas('riwayatAktif', function ($q) use ($selectedPeriode) {
+                $q->where('id_periode_masuk', $selectedPeriode);
             });
         }
 
@@ -230,14 +301,11 @@ class MahasiswaController extends Controller
             ->orderBy('nama_mahasiswa')
             ->get();
 
-        // Data unuk dropdown filter
+        // Data untuk dropdown filter
         $semesters = \App\Models\Semester::orderBy('id_semester', 'desc')->get();
         $prodis = \App\Models\ProgramStudi::orderBy('nama_program_studi')->get();
 
-        $selectedPeriode = $request->periode_masuk;
-        $selectedProdi = $request->prodi;
-
-        return view('admin.mahasiswa.index', compact('mahasiswa', 'semesters', 'prodis', 'selectedPeriode', 'selectedProdi'));
+        return view('admin.mahasiswa.index', compact('mahasiswa', 'semesters', 'prodis', 'selectedPeriode', 'selectedProdi', 'showAll'));
     }
 
     /**
@@ -342,6 +410,16 @@ class MahasiswaController extends Controller
                 ->toArray();
         }
 
+        // Gatekeeping Status
+        $isKrsEligible = true;
+        $isUjianEligible = true;
+        $semesterAktif = \App\Models\Semester::where('a_periode_aktif', 1)->first();
+        if ($semesterAktif) {
+            $tagihanService = app(\App\Services\TagihanService::class);
+            $isKrsEligible = $tagihanService->isKrsEligible($mahasiswa->id, $semesterAktif->id_semester);
+            $isUjianEligible = $tagihanService->isUjianEligible($mahasiswa->id, $semesterAktif->id_semester);
+        }
+
         return view('admin.mahasiswa.show', compact(
             'mahasiswa',
             'agamas',
@@ -354,7 +432,9 @@ class MahasiswaController extends Controller
             'provinsis',
             'wilayahData',
             'kabupatenOptions',
-            'kecamatanOptions'
+            'kecamatanOptions',
+            'isKrsEligible',
+            'isUjianEligible'
         ));
     }
 

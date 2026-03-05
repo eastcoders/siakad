@@ -14,55 +14,6 @@
     <h4 class="fw-bold py-3 mb-2"><span class="text-muted fw-light">Perkuliahan /</span> Kelas Kuliah</h4>
 
     <div class="card">
-        <div class="card-header border-bottom">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div class="d-flex align-items-center gap-2">
-                    <h5 class="card-title mb-0">Daftar Kelas Kuliah</h5>
-                    @if(isset($activeSemester))
-                        <span class="badge bg-label-primary rounded-pill">
-                            <i class="ri-calendar-line me-1"></i> Semester: {{ $activeSemester->nama_semester }}
-                        </span>
-                    @endif
-                </div>
-
-                <div class="d-flex gap-2 align-items-center flex-wrap">
-                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                        <i class="ri-filter-3-line me-1"></i> Filter / Sort
-                    </button>
-                    <ul class="dropdown-menu p-3" style="width: 300px;">
-                        <div class="mb-3">
-                            <label for="filter_semester" class="form-label">Semester</label>
-                            <select id="filter_semester" class="form-select select2">
-                                <option value="">Semua Semester</option>
-                                @foreach($semesters as $semester)
-                                    <option value="{{ $semester->id_semester }}" {{ isset($activeSemester) && $semester->id_semester == $activeSemester->id_semester ? 'selected' : '' }}>
-                                        {{ $semester->nama_semester }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="filter_status" class="form-label">Status Sinkronisasi</label>
-                            <select id="filter_status" class="form-select">
-                                <option value="">Semua Status</option>
-                                <option value="synced">Sudah Sync</option>
-                                <option value="pending_push">Pending Push</option>
-                                <option value="created_local">Lokal (Belum Sync)</option>
-                            </select>
-                        </div>
-                        <div class="d-grid">
-                            <button type="button" class="btn btn-primary btn-apply-filter">Terapkan</button>
-                        </div>
-                    </ul>
-
-                    <a href="{{ route('admin.kelas-kuliah.create') }}" class="btn btn-primary waves-effect waves-light">
-                        <i class="ri-add-line me-1"></i> Tambah
-                    </a>
-                </div>
-            </div>
-        </div>
-
         <div class="card-datatable table-responsive">
             <table id="kelasKuliahTable" class="table table-bordered table-hover text-nowrap">
                 <thead class="table-light">
@@ -85,6 +36,64 @@
             </table>
         </div>
     </div>
+
+    {{-- Modal Filter --}}
+    <div class="modal fade" id="modalFilter" tabindex="-1" aria-labelledby="modalFilterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalFilterTitle">Filter Data Kelas Kuliah</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Semester</label>
+                            <select id="filter_semester" class="form-select select2-modal"
+                                data-placeholder="-- Semua Semester --">
+                                <option value="">-- Semua Semester --</option>
+                                @foreach($semesters as $semester)
+                                    <option value="{{ $semester->id_semester }}"
+                                        {{ isset($activeSemester) && $semester->id_semester == $activeSemester->id_semester ? 'selected' : '' }}>
+                                        {{ $semester->nama_semester }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Program Studi</label>
+                            <select id="filter_prodi" class="form-select select2-modal"
+                                data-placeholder="-- Semua Prodi --">
+                                <option value="">-- Semua Prodi --</option>
+                                @foreach($prodis as $prodi)
+                                    <option value="{{ $prodi->id_prodi }}">
+                                        {{ $prodi->nama_program_studi }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Status Sinkronisasi</label>
+                            <select id="filter_status" class="form-select">
+                                <option value="">Semua Status</option>
+                                <option value="synced">Sudah Sync</option>
+                                <option value="pending_push">Pending Push</option>
+                                <option value="created_local">Lokal (Belum Sync)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-reset-filter">Reset Filter</button>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary me-2"
+                            data-bs-dismiss="modal">Batal</button>
+                        <button type="button" class="btn btn-primary btn-apply-filter">Terapkan Filter</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -93,9 +102,9 @@
 
     <script>
         $(function () {
-            // Select2 init
-            $('.select2').select2({
-                dropdownParent: $('.dropdown-menu') // Fix select2 inside dropdown
+            // Select2 init di dalam modal (penting: dropdownParent harus modal)
+            $('.select2-modal').select2({
+                dropdownParent: $('#modalFilter')
             });
 
             // DataTables init
@@ -106,6 +115,7 @@
                     url: "{{ route('admin.kelas-kuliah.index') }}",
                     data: function (d) {
                         d.id_semester = $('#filter_semester').val();
+                        d.id_prodi = $('#filter_prodi').val();
                         d.status_sinkronisasi = $('#filter_status').val();
                     }
                 },
@@ -121,8 +131,8 @@
                     { data: 'dosen_pengajar', name: 'dosen_pengajar', orderable: false, searchable: false },
                     { data: 'peserta_kelas', name: 'peserta_kelas', orderable: false, searchable: false },
                 ],
-                order: [[3, 'desc'], [5, 'asc']], // Order by Semester desc, then Nama MK asc
-                responsive: false, // Requirement said "tidak ada kolom yang collapse/hidden di mobile", but table-responsive wrapper handles scroll
+                order: [[3, 'desc'], [5, 'asc']],
+                responsive: false,
                 scrollX: true,
                 pageLength: 10,
                 language: {
@@ -140,18 +150,65 @@
                         previous: '‹'
                     }
                 },
-                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>>t<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
+                buttons: [
+                    {
+                        text: '<i class="ri-filter-3-line me-sm-1"></i> <span class="d-none d-sm-inline-block">Filter</span>',
+                        className: 'btn btn-outline-secondary waves-effect waves-light me-2',
+                        action: function () {
+                            $('#modalFilter').modal('show');
+                        }
+                    },
+                    {
+                        text: '<i class="ri-add-line ri-16px me-sm-1"></i> <span class="d-none d-sm-inline-block">Tambah Kelas</span>',
+                        className: 'create-new btn btn-primary waves-effect waves-light',
+                        action: function () {
+                            window.location.href = "{{ route('admin.kelas-kuliah.create') }}";
+                        }
+                    }
+                ],
+                dom: '<"card-header flex-column flex-md-row border-bottom pb-3"<"head-label text-center"><"dt-action-buttons text-end pt-3 pt-md-0"B>>' +
+                     '<"row px-3 py-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>>' +
+                     't' +
+                     '<"row px-3 py-2"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
+                initComplete: function () {
+                    // Build filter badge
+                    let semesterText = $('#filter_semester option:selected').text().trim();
+                    let filterBadge = '';
+                    if ($('#filter_semester').val()) {
+                        filterBadge = '<span class="badge bg-primary ms-2 fs-6"><i class="ri-filter-fill"></i> ' + semesterText + '</span>';
+                    }
+                    $('div.head-label').html('<h5 class="card-title mb-0">Daftar Kelas Kuliah' + filterBadge + '</h5>');
+                }
             });
 
-            // Custom Filter
+            // Terapkan Filter (dari modal)
             $('.btn-apply-filter').on('click', function () {
                 table.draw();
-                // Update badge text if needed or simple redirect/reload if structure requires it
-                // For now just redraw standard ajax
+                $('#modalFilter').modal('hide');
 
-                // Close dropdown
-                $(this).closest('.dropdown-menu').removeClass('show');
-                $(this).closest('.dropdown').find('.dropdown-toggle').removeClass('show');
+                // Update badge
+                let semesterText = $('#filter_semester option:selected').text().trim();
+                let prodiText = $('#filter_prodi option:selected').text().trim();
+                let filterBadge = '';
+
+                let labels = [];
+                if ($('#filter_semester').val()) labels.push(semesterText);
+                if ($('#filter_prodi').val()) labels.push(prodiText);
+
+                if (labels.length > 0) {
+                    filterBadge = '<span class="badge bg-primary ms-2 fs-6"><i class="ri-filter-fill"></i> ' + labels.join(' · ') + '</span>';
+                }
+                $('div.head-label').html('<h5 class="card-title mb-0">Daftar Kelas Kuliah' + filterBadge + '</h5>');
+            });
+
+            // Reset Filter
+            $('.btn-reset-filter').on('click', function () {
+                $('#filter_semester').val('').trigger('change');
+                $('#filter_prodi').val('').trigger('change');
+                $('#filter_status').val('');
+                table.draw();
+                $('#modalFilter').modal('hide');
+                $('div.head-label').html('<h5 class="card-title mb-0">Daftar Kelas Kuliah</h5>');
             });
 
             // Delete Confirmation

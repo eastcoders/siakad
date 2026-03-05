@@ -164,7 +164,7 @@
                                     data-placeholder="-- Semua Angkatan --">
                                     <option value="">-- Semua Angkatan --</option>
                                     @foreach($semesters as $smt)
-                                        <option value="{{ $smt->id_semester }}" {{ request('periode_masuk') == $smt->id_semester ? 'selected' : '' }}>
+                                        <option value="{{ $smt->id_semester }}" {{ $selectedPeriode == $smt->id_semester ? 'selected' : '' }}>
                                             {{ $smt->nama_semester }}
                                         </option>
                                     @endforeach
@@ -176,7 +176,7 @@
                                     data-placeholder="-- Semua Program Studi --">
                                     <option value="">-- Semua Program Studi --</option>
                                     @foreach($prodis as $prd)
-                                        <option value="{{ $prd->id_prodi }}" {{ request('prodi') == $prd->id_prodi ? 'selected' : '' }}>
+                                        <option value="{{ $prd->id_prodi }}" {{ $selectedProdi == $prd->id_prodi ? 'selected' : '' }}>
                                             {{ $prd->nama_program_studi }}
                                         </option>
                                     @endforeach
@@ -185,7 +185,7 @@
                         </div>
                     </div>
                     <div class="modal-footer d-flex justify-content-between">
-                        <a href="{{ route('admin.mahasiswa.index') }}" class="btn btn-outline-secondary">Reset</a>
+                        <a href="{{ route('admin.mahasiswa.index', ['all' => 1]) }}" class="btn btn-outline-secondary">Tampilkan Semua</a>
                         <div>
                             <button type="button" class="btn btn-outline-secondary me-2"
                                 data-bs-dismiss="modal">Batal</button>
@@ -227,7 +227,7 @@
                             width: '140px'
                         }
                     ],
-                    dom: '<"card-header flex-column flex-md-row border-bottom pb-0"<"head-label text-center"><"dt-action-buttons text-end pt-3 pt-md-0"B>>' +
+                    dom: '<"card-header flex-column flex-md-row border-bottom "<"head-label text-center"><"dt-action-buttons text-end pt-3 pt-md-0"B>>' +
                         '<"row px-3 py-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>>' +
                         't' +
                         '<"row px-3 py-2"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
@@ -323,6 +323,11 @@
                                     text: '<i class="ri-refresh-line me-1"></i> Inisialisasi Tipe Kelas',
                                     className: 'dropdown-item',
                                     action: function () { processInitTipeKelas(); }
+                                },
+                                {
+                                    text: '<i class="ri-shield-user-line me-1"></i> Inisialisasi Semua Akun',
+                                    className: 'dropdown-item',
+                                    action: function () { processInitAllAccounts(); }
                                 }
                             ]
                         },
@@ -370,8 +375,15 @@
                 });
 
                 let filterBadge = '';
-                @if(request()->filled('periode_masuk') || request()->filled('prodi'))
-                    filterBadge = '<span class="badge bg-primary ms-2 fs-6"><i class="ri-filter-fill"></i> Data Difilter</span>';
+                @if($selectedPeriode || $selectedProdi)
+                    @php
+                        $filterLabel = '';
+                        if ($selectedPeriode) {
+                            $smtName = $semesters->firstWhere('id_semester', $selectedPeriode)?->nama_semester ?? $selectedPeriode;
+                            $filterLabel = $smtName;
+                        }
+                    @endphp
+                    filterBadge = '<span class="badge bg-primary ms-2 fs-6"><i class="ri-filter-fill"></i> {{ $filterLabel }}</span>';
                 @endif
                 $('div.head-label').html('<h5 class="card-title mb-0">Daftar Mahasiswa' + filterBadge + '</h5>');
 
@@ -499,6 +511,40 @@
                 },
                 complete: function () {
                     $('.btn-outline-warning').prop('disabled', false).html('<i class="ri-refresh-line ri-16px me-sm-1"></i> Inisialisasi Tipe Kelas');
+                }
+            });
+        }
+
+        // Function for Mass Init All User Accounts
+        function processInitAllAccounts() {
+            if (!confirm('Proses ini akan membuat akun login untuk SEMUA mahasiswa yang belum memiliki akun.\nUsername & Password default: NIM\n\nLanjutkan?')) {
+                return;
+            }
+
+            $.ajax({
+                url: '{{ route("admin.mahasiswa.init-all-accounts") }}',
+                type: 'POST',
+                data: { _token: '{{ csrf_token() }}' },
+                beforeSend: function () {
+                    $('.btn-outline-info').prop('disabled', true);
+                },
+                success: function (response) {
+                    if (response.success) {
+                        alert(response.message);
+                        location.reload();
+                    } else {
+                        alert('Gagal: ' + response.message);
+                    }
+                },
+                error: function (xhr) {
+                    let msg = 'Terjadi kesalahan server.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    alert(msg);
+                },
+                complete: function () {
+                    $('.btn-outline-info').prop('disabled', false);
                 }
             });
         }

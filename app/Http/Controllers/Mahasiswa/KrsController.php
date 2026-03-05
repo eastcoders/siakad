@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\PesertaKelasKuliah;
 use App\Models\KrsPeriod;
 use App\Models\Semester;
+use App\Services\TagihanService;
 use Illuminate\Support\Facades\Log;
 
 class KrsController extends Controller
@@ -58,6 +59,7 @@ class KrsController extends Controller
         // 5. Cek Periode & Bypass (Hanya jika di semester aktif)
         $periodeKrs = KrsPeriod::where('id_semester', $semesterDipilih->id_semester)->first();
         $canSubmit = false;
+        $tagihanBlocked = false;
 
         if ($isSemesterAktif) {
             if ($periodeKrs && $periodeKrs->is_open) {
@@ -67,11 +69,21 @@ class KrsController extends Controller
             }
         }
 
+        // 6. Gatekeeping Keuangan: cek tagihan wajib KRS sudah lunas
+        if ($canSubmit) {
+            $tagihanService = app(TagihanService::class);
+            if (!$tagihanService->isKrsEligible($mahasiswa->id, $semesterDipilih->id_semester)) {
+                $canSubmit = false;
+                $tagihanBlocked = true;
+            }
+        }
+
         return view('mahasiswa.krs.index', [
             'krsItems' => $krsItems,
             'semesterAktif' => $semesterDipilih,
             'isSemesterAktif' => $isSemesterAktif,
             'canSubmit' => $canSubmit,
+            'tagihanBlocked' => $tagihanBlocked,
             'mahasiswa' => $mahasiswa,
             'riwayatSemester' => $riwayatSemester
         ]);
@@ -93,6 +105,13 @@ class KrsController extends Controller
 
         if ((!$periodeKrs || !$periodeKrs->is_open) && !$isBypass) {
             return back()->with('error', 'Gagal: Masa pengisian KRS sudah ditutup atau belum dimulai.');
+        }
+
+        // Gatekeeping Keuangan
+        $tagihanService = app(TagihanService::class);
+        if (!$tagihanService->isKrsEligible($mahasiswa->id, $semesterId)) {
+            Log::warning('GATEKEEPING: KRS ditolak karena tagihan belum lunas', ['mahasiswa_id' => $mahasiswa->id, 'semester' => $semesterId]);
+            return back()->with('error', 'Gagal: Tagihan wajib KRS belum lunas. Silakan selesaikan pembayaran terlebih dahulu.');
         }
 
         try {

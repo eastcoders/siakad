@@ -65,6 +65,66 @@
             </div>
         @endforeach
     </div>
+
+    {{-- Section: Data Referensi --}}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Data Referensi</h5>
+                    <span class="badge bg-label-warning rounded-pill"> <i class="ri-database-2-line me-1"></i>
+                        Inisialisasi</span>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">Tarik data referensi dasar (Biodata, Pendidikan, Nasional) yang diperlukan
+                        sebagai pondasi data sistem. Proses ini cukup dilakukan <b>sekali saat setup awal</b> atau saat ada
+                        pembaruan referensi dari Dikti.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @foreach ($refEntities as $ref)
+            <div class="col-md-6 col-xl-4">
+                <div class="card h-100 shadow-sm border-0" id="card-{{ $ref['name'] }}">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="avatar avatar-md me-3">
+                                <span class="avatar-initial rounded bg-label-warning">
+                                    <i class="ri-{{ $ref['icon'] }}-line ri-24px"></i>
+                                </span>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">{{ $ref['label'] }}</h6>
+                                <small class="text-muted">{{ $ref['desc'] }}</small>
+                            </div>
+                        </div>
+
+                        <div id="progress-container-{{ $ref['name'] }}" style="display: none;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small class="text-muted fw-medium" id="status-text-{{ $ref['name'] }}">Processing...</small>
+                                <small class="text-muted fw-medium" id="percent-{{ $ref['name'] }}">0%</small>
+                            </div>
+                            <div class="progress mb-3" style="height: 8px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                                    role="progressbar" id="bar-{{ $ref['name'] }}" style="width: 0%" aria-valuenow="0"
+                                    aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-3">
+                            <button type="button" class="btn btn-warning btn-sync" data-entity="{{ $ref['name'] }}"
+                                id="btn-{{ $ref['name'] }}">
+                                <i class="ri-download-cloud-2-line me-1"></i> Tarik Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
 @endsection
 
 @push('scripts')

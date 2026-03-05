@@ -34,6 +34,10 @@ class KelasKuliahController extends Controller
                 $query->where('status_sinkronisasi', $request->status_sinkronisasi);
             }
 
+            if ($request->has('id_prodi') && $request->id_prodi != '') {
+                $query->where('id_prodi', $request->id_prodi);
+            }
+
             // 2. Search
             if ($request->has('search') && !empty($request->input('search')['value'])) {
                 $searchValue = $request->input('search')['value'];
@@ -171,6 +175,8 @@ class KelasKuliahController extends Controller
         }
 
         $semesters = Semester::orderBy('id_semester', 'desc')->get();
+        $prodis = ProgramStudi::orderBy('nama_program_studi')->get();
+
         // Default active semester: a_periode_aktif = 1, order by id_semester desc
         $activeSemester = Semester::where('a_periode_aktif', 1)
             ->orderBy('id_semester', 'desc')
@@ -181,7 +187,7 @@ class KelasKuliahController extends Controller
             $activeSemester = Semester::orderBy('id_semester', 'desc')->first();
         }
 
-        return view('admin.kelas-kuliah.index', compact('semesters', 'activeSemester'));
+        return view('admin.kelas-kuliah.index', compact('semesters', 'prodis', 'activeSemester'));
     }
 
     public function create()

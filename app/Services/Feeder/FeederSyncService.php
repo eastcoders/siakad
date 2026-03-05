@@ -9,6 +9,7 @@ use App\Jobs\Feeder\PullMataKuliahJob;
 use App\Jobs\Feeder\PullKurikulumJob;
 use App\Jobs\Feeder\PullMatkulKurikulumJob;
 use App\Jobs\Feeder\PullKelasKuliahJob;
+use App\Jobs\Feeder\PullDosenJob;
 use App\Jobs\Feeder\PullDosenPengajarJob;
 use App\Jobs\Feeder\PullPesertaKelasJob;
 use App\Jobs\Feeder\PullNilaiMahasiswaJob;
@@ -51,7 +52,14 @@ class FeederSyncService
 
         $allJobs = [];
         $offset = 0;
-        $fetchLimit = ($entity === 'Nilai') ? 500 : 1000; // Nilai lebih berat, kurangi limit per request
+        $fetchLimit = 1000;
+        $activeChunkSize = $this->chunkSize;
+        if ($entity === 'Nilai') {
+            $fetchLimit = 500;
+        } elseif ($entity === 'Dosen') {
+            $fetchLimit = 50;
+            $activeChunkSize = 25; // 25 dosen per Job (Karea di dalamnya ada loop API riwayat)
+        }
 
         try {
             while (true) {
@@ -67,7 +75,7 @@ class FeederSyncService
                     break;
 
                 // 2. Chunk data yang baru ditarik and create jobs
-                $chunks = array_chunk($data, $this->chunkSize);
+                $chunks = array_chunk($data, $activeChunkSize);
                 foreach ($chunks as $chunk) {
                     $allJobs[] = new $jobClass($chunk);
                 }
@@ -114,6 +122,7 @@ class FeederSyncService
             'Kurikulum' => PullKurikulumJob::class,
             'MatkulKurikulum' => PullMatkulKurikulumJob::class,
             'KelasKuliah' => PullKelasKuliahJob::class,
+            'Dosen' => PullDosenJob::class,
             'DosenPengajar' => PullDosenPengajarJob::class,
             'PesertaKelas' => PullPesertaKelasJob::class,
             'Nilai' => PullNilaiMahasiswaJob::class,
@@ -130,6 +139,7 @@ class FeederSyncService
             'Kurikulum' => 'GetListKurikulum',
             'MatkulKurikulum' => 'GetMatkulKurikulum',
             'KelasKuliah' => 'GetListKelasKuliah',
+            'Dosen' => 'GetListDosen',
             'DosenPengajar' => 'GetDosenPengajarKelasKuliah',
             'PesertaKelas' => 'GetPesertaKelasKuliah',
             'Nilai' => 'GetDetailNilaiPerkuliahanKelas',

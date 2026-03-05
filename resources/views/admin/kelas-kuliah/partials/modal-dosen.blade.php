@@ -9,13 +9,14 @@
                 <h5 class="modal-title" id="modalDosenLabel">Tambah Dosen Pengajar</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('kelas.dosen.store') }}" method="POST">
+            <form id="formDosen" action="{{ route('kelas.dosen.store') }}" method="POST">
                 @csrf
+                <input type="hidden" name="_method" id="formDosenMethod" value="POST">
                 <input type="hidden" name="kelas_kuliah_id" value="{{ $kelasKuliah->id }}">
 
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-12">
+                        <div class="col-12" id="dosenSelectWrapper">
                             <label for="dosen_id" class="form-label">Dosen Penugasan (Pusat) <span
                                     class="text-danger">*</span></label>
                             <select name="dosen_id" id="dosen_id"
@@ -32,6 +33,15 @@
                                 untuk dilaporkan ke pusat.
                             </div>
                             @error('dosen_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+
+                        {{-- Info dosen saat mode edit --}}
+                        <div class="col-12 d-none" id="dosenInfoWrapper">
+                            <label class="form-label">Dosen Penugasan (Pusat)</label>
+                            <input type="text" class="form-control bg-light" id="dosenInfoText" readonly disabled>
+                            <div class="form-text text-muted">
+                                <i class="ri-lock-line me-1"></i> Dosen penugasan tidak dapat diubah pada mode edit.
+                            </div>
                         </div>
 
                         <div class="col-12">
@@ -106,7 +116,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" id="btnSubmitDosen">
                         <i class="ri-save-line me-1"></i> Simpan Dosen
                     </button>
                 </div>
@@ -128,6 +138,55 @@
                     placeholder: 'Pilih Dosen'
                 });
             });
+
+            // Reset modal to "Create" mode when manually opened via "Tambah" button
+            $('[data-bs-target="#modalDosen"]').not('.btn-edit-dosen').on('click', function () {
+                resetModalToCreate();
+            });
+
+            // Reset when modal is hidden
+            modalElement.on('hidden.bs.modal', function () {
+                resetModalToCreate();
+            });
+
+            function resetModalToCreate() {
+                $('#modalDosenLabel').text('Tambah Dosen Pengajar');
+                $('#formDosen').attr('action', '{{ route("kelas.dosen.store") }}');
+                $('#formDosenMethod').val('POST');
+                $('#btnSubmitDosen').html('<i class="ri-save-line me-1"></i> Simpan Dosen');
+                $('#dosenSelectWrapper').removeClass('d-none');
+                $('#dosenInfoWrapper').addClass('d-none');
+                $('#dosen_id').prop('required', true).val('').trigger('change');
+                $('#id_dosen_alias_lokal').val('').trigger('change');
+                $('#bobot_sks').val(0);
+                $('#jenis_evaluasi').val('');
+                $('#jumlah_rencana_pertemuan').val(0);
+                $('#jumlah_realisasi_pertemuan').val('');
+            }
         });
+
+        // Function to open modal in edit mode
+        function openEditDosenModal(data) {
+            const baseUrl = '{{ url("admin/kelas-dosen") }}';
+            $('#modalDosenLabel').text('Edit Dosen Pengajar');
+            $('#formDosen').attr('action', baseUrl + '/' + data.id);
+            $('#formDosenMethod').val('PUT');
+            $('#btnSubmitDosen').html('<i class="ri-save-line me-1"></i> Simpan Perubahan');
+
+            // Hide dosen select, show info text (dosen tidak boleh diubah)
+            $('#dosenSelectWrapper').addClass('d-none');
+            $('#dosen_id').prop('required', false);
+            $('#dosenInfoWrapper').removeClass('d-none');
+            $('#dosenInfoText').val(data.dosen_nama);
+
+            // Populate fields
+            $('#id_dosen_alias_lokal').val(data.id_dosen_alias_lokal).trigger('change');
+            $('#bobot_sks').val(data.bobot_sks);
+            $('#jenis_evaluasi').val(data.jenis_evaluasi);
+            $('#jumlah_rencana_pertemuan').val(data.jumlah_rencana_pertemuan);
+            $('#jumlah_realisasi_pertemuan').val(data.jumlah_realisasi_pertemuan || '');
+
+            $('#modalDosen').modal('show');
+        }
     </script>
 @endpush

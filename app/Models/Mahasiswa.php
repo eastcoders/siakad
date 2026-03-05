@@ -7,8 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Mahasiswa extends Model
 {
     protected $table = 'mahasiswas';
-    // Allow mass assignment for all except ID (handled by Auto-Increment)
-    protected $guarded = ['id'];
     protected $fillable = [
         'id_mahasiswa',
         'id_feeder',
@@ -31,6 +29,8 @@ class Mahasiswa extends Model
         'status_sinkronisasi',
         'last_synced_at',
         'sync_error_message',
+        'is_synced',
+        'sumber_data',
     ];
 
     public function user()
@@ -91,6 +91,11 @@ class Mahasiswa extends Model
     {
         return $this->hasOne(RiwayatPendidikan::class, 'id_mahasiswa', 'id')
             ->latest('id_periode_masuk'); // Assuming logic for "active" is latest period or based on status logic if available
+    }
+
+    public function tagihans()
+    {
+        return $this->hasMany(Tagihan::class, 'id_mahasiswa');
     }
 
     // Relationships needed for Detail View

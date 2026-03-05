@@ -20,6 +20,7 @@ class PullKelasKuliahJob extends BaseSyncJob
         KelasKuliah::updateOrCreate(
             ['id_feeder' => $row['id_kelas_kuliah']],
             [
+                'id_kelas_kuliah' => $row['id_kelas_kuliah'], // UUID asli dari Feeder — digunakan sebagai FK oleh peserta & dosen pengajar
                 'id_prodi' => $row['id_prodi'],
                 'id_semester' => $row['id_semester'],
                 'id_matkul' => $row['id_matkul'],

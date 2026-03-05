@@ -12,6 +12,9 @@ class UserRoleSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'mahasiswa']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'dosen']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'Keuangan']);
     }
 }

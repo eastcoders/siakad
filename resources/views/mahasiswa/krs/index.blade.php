@@ -77,10 +77,6 @@
                     <div class="info-container">
                         <ul class="list-unstyled mb-4">
                             <li class="mb-3">
-                                <span class="fw-bold me-2 text-muted">ID Mahasiswa:</span>
-                                <span>{{ $mahasiswa->id }}</span>
-                            </li>
-                            <li class="mb-3">
                                 <span class="fw-bold me-2 text-muted">Semester:</span>
                                 <span>{{ $semesterAktif->nama_semester }}</span>
                             </li>
@@ -116,10 +112,13 @@
                                         </button>
                                     </form>
                                 </div>
+                            @elseif($tagihanBlocked && $krsItems->contains('status_krs', 'paket'))
+                                <div class="alert alert-danger small mb-0">
+                                    <i class="ri-error-warning-line me-1"></i> Anda memiliki tagihan wajib KRS yang belum lunas. Silakan selesaikan pembayaran tagihan di menu <strong>Keuangan Saya</strong> untuk dapat mengajukan KRS.
+                                </div>
                             @elseif(!$canSubmit && $krsItems->contains('status_krs', 'paket'))
                                 <div class="alert alert-warning small mb-0">
-                                    <i class="ri-lock-line me-1"></i> Masa pengisian KRS telah ditutup. Silakan hubungi prodi jika
-                                    ada kendala.
+                                    <i class="ri-lock-line me-1"></i> Masa pengisian KRS telah ditutup atau belum dimulai. Silakan hubungi prodi jika ada kendala.
                                 </div>
                             @endif
                         @else
