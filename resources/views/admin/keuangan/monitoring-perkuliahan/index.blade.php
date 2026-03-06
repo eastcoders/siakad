@@ -32,7 +32,6 @@
                     <p class="text-muted"><i class="ri-information-line"></i> Tampilan monitoring yang dirangkum berdasarkan
                         aktivitas dosen bulanan. Sistem akan mengecualikan pertemuan mengajar yang belum di-verifikasi
                         (Disetujui) oleh Kaprodi dari perhitungan estimasi honor.</p>
-                </div>
 
                 <div class="table-responsive text-nowrap">
                     <table class="table table-hover table-bordered" id="tableMonitoring">
@@ -92,6 +91,8 @@
                         </tbody>
                     </table>
                 </div>
+                </div>
+
             </div>
 
         </div>

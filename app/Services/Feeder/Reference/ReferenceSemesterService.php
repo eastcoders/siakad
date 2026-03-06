@@ -52,17 +52,29 @@ class ReferenceSemesterService
 
             DB::transaction(function () use ($data) {
                 foreach ($data as $item) {
+                    $existing = Semester::find($item['id_semester']);
+
                     Semester::updateOrCreate(
                         ['id_semester' => $item['id_semester']],
                         [
                             'nama_semester' => $item['nama_semester'] ?? null,
                             'id_tahun_ajaran' => $item['id_tahun_ajaran'] ?? null,
                             'semester' => $item['semester'] ?? null,
-                            'a_periode_aktif' => $item['a_periode_aktif'] ?? null,
+                            // Jika data sudah eksis, ikuti status lokalnya. Jika baru, set 0.
+                            'a_periode_aktif' => $existing ? $existing->a_periode_aktif : 0,
                             'tanggal_mulai' => $item['tanggal_mulai'] ?? null,
                             'tanggal_selesai' => $item['tanggal_selesai'] ?? null,
                         ]
                     );
+                }
+
+                // Cleanup: Pastikan hanya ada maksimal 1 semester aktif berdasarkan ID terbesar
+                $activeSemesters = Semester::where('a_periode_aktif', 1)->get();
+                if ($activeSemesters->count() > 1) {
+                    $maxId = $activeSemesters->max('id_semester');
+                    Semester::where('a_periode_aktif', 1)
+                        ->where('id_semester', '!=', $maxId)
+                        ->update(['a_periode_aktif' => 0]);
                 }
             });
 
