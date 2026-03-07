@@ -48,25 +48,32 @@ class TagihanController extends Controller
             'id_semester' => 'required|exists:semesters,id_semester',
             'id_mahasiswa' => 'required_if:mode,individual|nullable|exists:mahasiswas,id',
             'id_prodi' => 'nullable|exists:program_studis,id_prodi',
+            'kategori' => 'required|in:per_semester,sekali_bayar',
         ]);
 
         try {
+            $kategori = $request->kategori;
+
             if ($request->mode === 'individual') {
                 $mahasiswa = Mahasiswa::findOrFail($request->id_mahasiswa);
 
-                // Cek duplikat
+                // Cek duplikat (opsional, mungkin untuk sekali bayar boleh berkali-kali? Tapi biasanya 1 semester 1 tagihan untuk jenis yang sama)
+                // Sementara biarkan filter semester + mahasiswa + kategori
                 $exists = Tagihan::where('id_mahasiswa', $mahasiswa->id)
                     ->where('id_semester', $request->id_semester)
+                    ->whereHas('items.komponenBiaya', function ($q) use ($kategori) {
+                        $q->where('kategori', $kategori);
+                    })
                     ->exists();
 
                 if ($exists) {
-                    return back()->with('error', 'Tagihan untuk mahasiswa ini pada semester tersebut sudah ada.');
+                    return back()->with('error', "Tagihan kategori " . (\App\Models\KomponenBiaya::KATEGORI_OPTIONS[$kategori] ?? $kategori) . " untuk mahasiswa ini pada semester tersebut sudah ada.");
                 }
 
-                $tagihan = $this->tagihanService->terbitkanTagihan($mahasiswa, $request->id_semester, $request->id_prodi);
+                $tagihan = $this->tagihanService->terbitkanTagihan($mahasiswa, $request->id_semester, $request->id_prodi, $kategori);
                 return back()->with('success', "Tagihan {$tagihan->nomor_tagihan} berhasil diterbitkan.");
             } else {
-                $count = $this->tagihanService->terbitkanTagihanBulk($request->id_semester, $request->id_prodi);
+                $count = $this->tagihanService->terbitkanTagihanBulk($request->id_semester, $request->id_prodi, $kategori);
                 return back()->with('success', "{$count} tagihan berhasil diterbitkan secara bulk.");
             }
         } catch (\Exception $e) {

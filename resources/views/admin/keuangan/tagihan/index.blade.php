@@ -106,6 +106,20 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label d-block">Kategori Tagihan <span
+                                        class="text-danger">*</span></label>
+                                <div class="form-check form-check-inline mt-2">
+                                    <input class="form-check-input" type="radio" name="kategori" id="kat_semester"
+                                        value="per_semester" checked>
+                                    <label class="form-check-label" for="kat_semester">Per Semester</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="kategori" id="kat_sekali"
+                                        value="sekali_bayar">
+                                    <label class="form-check-label" for="kat_sekali">Sekali Bayar</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6" id="semesterWrapper">
                                 <label class="form-label">Semester <span class="text-danger">*</span></label>
                                 <select name="id_semester" class="form-select select2-tagihan" required style="width:100%">
                                     <option value="">Pilih Semester</option>

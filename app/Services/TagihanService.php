@@ -58,16 +58,16 @@ class TagihanService
     /**
      * Terbitkan tagihan untuk 1 mahasiswa pada 1 semester.
      */
-    public function terbitkanTagihan(Mahasiswa $mahasiswa, string $idSemester, ?string $idProdi = null): Tagihan
+    public function terbitkanTagihan(Mahasiswa $mahasiswa, string $idSemester, ?string $idProdi = null, string $kategori = KomponenBiaya::KATEGORI_PER_SEMESTER): Tagihan
     {
-        return DB::transaction(function () use ($mahasiswa, $idSemester, $idProdi) {
+        return DB::transaction(function () use ($mahasiswa, $idSemester, $idProdi, $kategori) {
             // Ambil tahun angkatan dari riwayat pendidikan mahasiswa (4 digit pertama id_periode_masuk)
             $riwayat = $mahasiswa->riwayatPendidikans()->latest('id')->first();
             $tahunAngkatan = $riwayat ? substr($riwayat->id_periode_masuk, 0, 4) : null;
 
             // Ambil komponen biaya aktif yang berlaku untuk prodi + tahun angkatan mahasiswa
             $komponens = KomponenBiaya::active()
-                ->where('kategori', KomponenBiaya::KATEGORI_PER_SEMESTER)
+                ->where('kategori', $kategori)
                 ->forTarget($idProdi, $tahunAngkatan)
                 ->get();
 
@@ -114,7 +114,7 @@ class TagihanService
      * Terbitkan tagihan bulk untuk semua mahasiswa aktif di 1 semester.
      * @return int jumlah tagihan yang berhasil diterbitkan
      */
-    public function terbitkanTagihanBulk(string $idSemester, ?string $idProdi = null): int
+    public function terbitkanTagihanBulk(string $idSemester, ?string $idProdi = null, string $kategori = KomponenBiaya::KATEGORI_PER_SEMESTER): int
     {
         $mahasiswas = Mahasiswa::whereHas('riwayatPendidikans', function ($q) use ($idProdi) {
             if ($idProdi) {
@@ -131,7 +131,7 @@ class TagihanService
         $count = 0;
         foreach ($mahasiswas as $mhs) {
             try {
-                $this->terbitkanTagihan($mhs, $idSemester, $idProdi);
+                $this->terbitkanTagihan($mhs, $idSemester, $idProdi, $kategori);
                 $count++;
             } catch (\Exception $e) {
                 Log::error("SYSTEM_ERROR: Gagal terbitkan tagihan bulk", [
