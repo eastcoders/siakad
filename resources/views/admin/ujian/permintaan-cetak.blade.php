@@ -79,7 +79,7 @@
                                     </td>
                                     <td>{{ $item->diminta_pada ? $item->diminta_pada->format('d M Y H:i') : '-' }}</td>
                                     <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
+                                        <div class="btn-group btn-group-sm gap-2">
                                             <a href="{{ route('admin.ujian.print-kartu', $item->id) }}" target="_blank"
                                                 class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip"
                                                 title="Preview & Cetak">

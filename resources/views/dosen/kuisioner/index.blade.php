@@ -217,7 +217,7 @@
                         <h5 class="modal-title">Ubah Pengaturan Kuesioner</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form id="formEditKuisioner" method="POST">
+                    <form id="formEditKuisioner" action="javascript:void(0)" method="POST">
                         @csrf
                         @method('PUT')
                         <div class="modal-body">
@@ -257,7 +257,19 @@
 
 @endsection
 
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/select2/select2.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-bs5/datatables.bootstrap5.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-responsive-bs5/responsive.bootstrap5.css') }}" />
+    <link rel="stylesheet"
+        href="{{ asset('assets/vendor/libs/datatables-checkboxes-jquery/datatables.checkboxes.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-buttons-bs5/buttons.bootstrap5.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/vendor/libs/datatables-rowgroup-bs5/rowgroup.bootstrap5.css') }}" />
+@endpush
+
 @push('scripts')
+    <script src="{{ asset('assets/vendor/libs/datatables-bs5/datatables-bootstrap5.js') }}"></script>
+    <script src="{{ asset('assets/vendor/libs/select2/select2.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Initialize Select2 in Add Modal
@@ -282,8 +294,8 @@
                 dom: '<"row mx-2"<"col-md-2"<"me-3"l>><"col-md-10"<"dt-action-buttons text-xl-end text-lg-start text-md-end text-start d-flex align-items-center justify-content-end flex-md-row flex-column mb-3 mb-md-0"f>>>t<"row mx-2"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
             });
 
-            // Setup Edit Modal Data
-            $('.edit-kuisioner-btn').on('click', function () {
+            // Setup Edit Modal Data (delegated for DataTables pagination)
+            $(document).on('click', '.edit-kuisioner-btn', function () {
                 var id = $(this).data('id');
                 var judul = $(this).data('judul');
                 var deskripsi = $(this).data('deskripsi');
@@ -297,8 +309,7 @@
                 $('#edit_status').trigger('change');
 
                 // Dynamically set form action URL
-                var url = "{{ route('dosen.kuisioner.update', ':id') }}";
-                url = url.replace(':id', id);
+                var url = "{{ url('dosen/kuisioner') }}/" + id;
                 $('#formEditKuisioner').attr('action', url);
             });
 

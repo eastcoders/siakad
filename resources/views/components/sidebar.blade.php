@@ -126,7 +126,7 @@
                 <span class="menu-header-text">Akademik</span>
             </li>
             <li
-                class="menu-item {{ request()->routeIs(['admin.mata-kuliah.*', 'admin.kurikulum.*', 'admin.kelas-kuliah.*', 'admin.monitoring.*', 'admin.rekap-nilai.*', 'admin.ujian.*']) ? 'active open' : '' }}">
+                class="menu-item {{ request()->routeIs(['admin.mata-kuliah.*', 'admin.kurikulum.*', 'admin.kelas-kuliah.*', 'admin.monitoring.*', 'admin.rekap-nilai.*', 'admin.ujian.*', 'admin.pengaturan-ujian.*']) ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons ri-book-read-line"></i>
                     <div data-i18n="Data Perkuliahan">Data Perkuliahan</div>
@@ -157,10 +157,23 @@
                             <div data-i18n="Rekapitulasi Nilai">Rekapitulasi Nilai</div>
                         </a>
                     </li>
-                    <li class="menu-item {{ request()->routeIs('admin.ujian.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.ujian.index') }}" class="menu-link">
+                    <li
+                        class="menu-item {{ request()->routeIs(['admin.ujian.*', 'admin.pengaturan-ujian.*']) ? 'active open' : '' }}">
+                        <a href="javascript:void(0);" class="menu-link menu-toggle">
                             <div data-i18n="Manajemen Ujian">Manajemen Ujian</div>
                         </a>
+                        <ul class="menu-sub">
+                            <li class="menu-item {{ request()->routeIs('admin.ujian.*') ? 'active' : '' }}">
+                                <a href="{{ route('admin.ujian.index') }}" class="menu-link">
+                                    <div data-i18n="Jadwal Ujian">Jadwal Ujian</div>
+                                </a>
+                            </li>
+                            <li class="menu-item {{ request()->routeIs('admin.pengaturan-ujian.*') ? 'active' : '' }}">
+                                <a href="{{ route('admin.pengaturan-ujian.index') }}" class="menu-link">
+                                    <div data-i18n="Pengaturan Ujian">Pengaturan Waktu Cetak</div>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </li>
@@ -234,7 +247,7 @@
                 <span class="menu-header-text">Pengaturan</span>
             </li>
             <li
-                class="menu-item {{ request()->routeIs(['admin.semester.*', 'admin.krs-period.*', 'admin.jadwal-global.*', 'admin.pengaturan-ujian.*', 'admin.pengumuman.*', 'admin.ruangan.*']) ? 'active open' : '' }}">
+                class="menu-item {{ request()->routeIs(['admin.semester.*', 'admin.krs-period.*', 'admin.jadwal-global.*', 'admin.pengumuman.*', 'admin.ruangan.*']) ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons ri-settings-3-line"></i>
                     <div data-i18n="Data Master">Data Master</div>
@@ -255,11 +268,7 @@
                             <div data-i18n="Jadwal Terpadu">Jadwal Terpadu</div>
                         </a>
                     </li>
-                    <li class="menu-item {{ request()->routeIs('admin.pengaturan-ujian.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.pengaturan-ujian.index') }}" class="menu-link">
-                            <div data-i18n="Pengaturan Ujian">Pengaturan Ujian</div>
-                        </a>
-                    </li>
+
                     <li class="menu-item {{ request()->routeIs('admin.pengumuman.*') ? 'active' : '' }}">
                         <a href="{{ route('admin.pengumuman.index') }}" class="menu-link">
                             <div data-i18n="Pengumuman">Pengumuman</div>
@@ -280,7 +289,7 @@
                     <div data-i18n="Kuisioner BPMI">Kuisioner BPMI</div>
                 </a>
                 <ul class="menu-sub">
-                    <li class="menu-item {{ request()->routeIs('dosen.kuisioner.index') ? 'active' : '' }}">
+                    <li class="menu-item {{ request()->routeIs('dosen.kuisioner.*') ? 'active' : '' }}">
                         <a href="{{ route('dosen.kuisioner.index') }}" class="menu-link">
                             <div data-i18n="Master Kuisioner">Master Form</div>
                         </a>
@@ -410,7 +419,7 @@
                         <div data-i18n="Kuisioner BPMI">Kuisioner BPMI</div>
                     </a>
                     <ul class="menu-sub">
-                        <li class="menu-item {{ request()->routeIs('dosen.kuisioner.index') ? 'active' : '' }}">
+                        <li class="menu-item {{ request()->routeIs('dosen.kuisioner.*') ? 'active' : '' }}">
                             <a href="{{ route('dosen.kuisioner.index') }}" class="menu-link">
                                 <div data-i18n="Master Kuisioner">Master Form</div>
                             </a>

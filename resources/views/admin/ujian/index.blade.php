@@ -134,7 +134,7 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
+                                        <div class="btn-group btn-group-sm gap-2">
                                             <form action="{{ route('admin.ujian.generate-peserta', $jadwal->id) }}"
                                                 method="POST" class="d-inline"
                                                 onsubmit="return confirm('Generate/update peserta ujian untuk kelas ini?');">

@@ -45,32 +45,44 @@ class KuisionerController extends Controller
         }
 
         $progressDosen = [];
-        $pesertaKelasArray = [];
+        $dosenUnikTarget = []; // Format: [ id_dosen => ['dosen' => Object, 'kelas' => Object] ]
+
         if ($kuesionerDosen->isNotEmpty()) {
-            // Muat kelas beserta relasi dosen pengajar (Dosen utama dan Alias)
             $pesertaKelas = PesertaKelasKuliah::with(['kelasKuliah.mataKuliah', 'kelasKuliah.dosenPengajar.dosen'])
                 ->whereIn('riwayat_pendidikan_id', $riwayatIds)
                 ->whereHas('kelasKuliah', function ($q) use ($activeSemesterId) {
                     $q->where('id_semester', $activeSemesterId);
                 })
                 ->get();
-            $pesertaKelasArray = $pesertaKelas;
 
-            $idKelasDiambil = $pesertaKelas->pluck('id_kelas_kuliah');
+            // Kumpulkan dosen unik yang mengajar mahasiswa ini
+            foreach ($pesertaKelas as $pk) {
+                if ($pk->kelasKuliah && $pk->kelasKuliah->dosenPengajar) {
+                    foreach ($pk->kelasKuliah->dosenPengajar as $pengajar) {
+                        $dosenId = $pengajar->id_dosen_alias_lokal ?? $pengajar->id_dosen;
+                        if ($dosenId && !isset($dosenUnikTarget[$dosenId])) {
+                            $dosenUnikTarget[$dosenId] = [
+                                'pengajar' => $pengajar,
+                                'kelas_contoh' => $pk->kelasKuliah // Ambil satu referensi kelasnya
+                            ];
+                        }
+                    }
+                }
+            }
 
-            // Hitung total dosen yang harus dinilai (per kelas)
-            $totalDosenTarget = \App\Models\DosenPengajarKelasKuliah::whereIn('id_kelas_kuliah', $idKelasDiambil)->count();
+            $totalDosenTarget = count($dosenUnikTarget);
 
             foreach ($kuesionerDosen as $kd) {
                 if ($totalDosenTarget === 0) {
                     $progressDosen[$kd->id] = ['done' => 0, 'total' => 0, 'completed' => true];
-                    continue; // Skip jika tidak ada kelas
+                    continue;
                 }
 
+                // Cukup hitung submission unik berdasarkan id_dosen untuk kuisioner terkait
                 $sudahHit = KuisionerSubmission::where('id_kuisioner', $kd->id)
                     ->where('id_mahasiswa', $mahasiswa->id)
-                    ->whereNotNull('id_kelas_kuliah')
                     ->whereNotNull('id_dosen')
+                    ->distinct('id_dosen')
                     ->count();
 
                 $progressDosen[$kd->id] = [
@@ -86,7 +98,7 @@ class KuisionerController extends Controller
             'progressPelayanan',
             'kuesionerDosen',
             'progressDosen',
-            'pesertaKelasArray'
+            'dosenUnikTarget'
         ));
     }
 

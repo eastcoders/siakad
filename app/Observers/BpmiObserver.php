@@ -14,9 +14,14 @@ class BpmiObserver
         // Panggil helper pada model Dosen untuk memastikan / membuat User
         $user = $bpmi->dosen->generateUserIfNotExists();
 
-        if ($user && !$user->hasRole('bpmi')) {
-            $user->assignRole('bpmi');
-            \Illuminate\Support\Facades\Log::info("SYNC_ROLE: User {$user->username} diberikan role 'bpmi' karena jabatan.");
+        if ($user) {
+            // Pastikan role 'bpmi' ada, buat jika belum
+            $role = \Spatie\Permission\Models\Role::findOrCreate('bpmi', 'web');
+
+            if (!$user->hasRole($role)) {
+                $user->assignRole($role);
+                \Illuminate\Support\Facades\Log::info("SYNC_ROLE: User {$user->username} diberikan role 'bpmi' karena jabatan.");
+            }
         }
     }
 
@@ -41,9 +46,12 @@ class BpmiObserver
             // Handle New Dosen (Assign & Auto Generate User)
             $user = $bpmi->dosen->generateUserIfNotExists();
 
-            if ($user && !$user->hasRole('bpmi')) {
-                $user->assignRole('bpmi');
-                \Illuminate\Support\Facades\Log::info("SYNC_ROLE: User {$user->username} diberikan role 'bpmi' akibat pergantian jabatan.");
+            if ($user) {
+                $role = \Spatie\Permission\Models\Role::findOrCreate('bpmi', 'web');
+                if (!$user->hasRole($role)) {
+                    $user->assignRole($role);
+                    \Illuminate\Support\Facades\Log::info("SYNC_ROLE: User {$user->username} diberikan role 'bpmi' akibat pergantian jabatan.");
+                }
             }
         }
     }

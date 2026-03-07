@@ -85,43 +85,39 @@
                         <!-- Collapse Pilihan Kelas Pembelajaran Tersedia -->
                         <div class="collapse mt-3" id="collapseKelas{{ $kd->id }}">
                             <div class="list-group list-group-flush rounded-3 border">
-                                @foreach($pesertaKelasArray as $pk)
-                                    @foreach($pk->kelasKuliah->dosenPengajar as $pengajar)
-                                        @php
-                                            $dosenId = $pengajar->id_dosen_alias_lokal ?? $pengajar->id_dosen;
-                                            
-                                            if (!$dosenId) continue;
+                                @foreach($dosenUnikTarget as $dosenId => $data)
+                                    @php
+                                        $pengajar = $data['pengajar'];
+                                        $kelasContoh = $data['kelas_contoh'];
 
-                                            $sudahIni = \App\Models\KuisionerSubmission::where('id_kuisioner', $kd->id)
-                                                        ->where('id_mahasiswa', auth()->user()->mahasiswa->id)
-                                                        ->where('id_kelas_kuliah', $pk->id_kelas_kuliah)
-                                                        ->where('id_dosen', $dosenId)
-                                                        ->exists();
-                                        @endphp
-                                        @if(!$sudahIni)
-                                            <a href="{{ route('mahasiswa.kuisioner.show', ['kuisioner' => $kd->id, 'kelas' => $pk->kelasKuliah->id, 'dosen' => $dosenId]) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-2">
-                                                <div>
-                                                    <div class="fw-semibold" style="font-size: 0.85rem;">{{ $pk->kelasKuliah->mataKuliah->nama_mata_kuliah }}</div>
-                                                    <div class="text-muted" style="font-size: 0.75rem;">
-                                                        <i class="ri-user-line me-1"></i> {{ $pengajar->nama_tampilan }}
-                                                    </div>
+                                        $sudahIni = \App\Models\KuisionerSubmission::where('id_kuisioner', $kd->id)
+                                                    ->where('id_mahasiswa', auth()->user()->mahasiswa->id)
+                                                    ->where('id_dosen', $dosenId)
+                                                    ->exists();
+                                    @endphp
+                                    @if(!$sudahIni)
+                                        <a href="{{ route('mahasiswa.kuisioner.show', ['kuisioner' => $kd->id, 'kelas' => $kelasContoh->id, 'dosen' => $dosenId]) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-2">
+                                            <div>
+                                                <div class="fw-semibold" style="font-size: 0.85rem;"><i class="ri-user-line me-1"></i> {{ $pengajar->nama_tampilan }}</div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    <i class="ri-book-read-line me-1"></i> (Contoh Kelas: {{ $kelasContoh->mataKuliah->nama_mata_kuliah }})
                                                 </div>
-                                                <i class="ri-file-edit-line text-primary"></i>
-                                            </a>
-                                        @else
-                                            <div class="list-group-item bg-lighter text-muted d-flex justify-content-between align-items-center p-2" style="opacity: 0.6">
-                                                <div>
-                                                    <div class="fw-semibold text-decoration-line-through" style="font-size: 0.85rem;">{{ $pk->kelasKuliah->mataKuliah->nama_mata_kuliah }}</div>
-                                                    <div class="text-muted" style="font-size: 0.75rem;">
-                                                        <i class="ri-user-line me-1"></i> {{ $pengajar->nama_tampilan }} (Selesai Dievaluasi)
-                                                    </div>
-                                                </div>
-                                                <i class="ri-checkbox-circle-fill text-success"></i>
                                             </div>
-                                        @endif
-                                    @endforeach
+                                            <i class="ri-file-edit-line text-primary"></i>
+                                        </a>
+                                    @else
+                                        <div class="list-group-item bg-lighter text-muted d-flex justify-content-between align-items-center p-2" style="opacity: 0.6">
+                                            <div>
+                                                <div class="fw-semibold text-decoration-line-through" style="font-size: 0.85rem;"><i class="ri-user-line me-1"></i> {{ $pengajar->nama_tampilan }}</div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    <i class="ri-checkbox-circle-line me-1"></i> Selesai Dievaluasi
+                                                </div>
+                                            </div>
+                                            <i class="ri-checkbox-circle-fill text-success"></i>
+                                        </div>
+                                    @endif
                                 @endforeach
-                            </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -83,7 +83,10 @@ class JadwalUjianController extends Controller
                 'tipe' => $jadwal->tipe_ujian,
             ]);
 
-            return back()->with('success', "Jadwal {$jadwal->tipe_ujian} berhasil ditambahkan.");
+            // Otomatis men-generate peserta ujian
+            $result = $this->ujianService->generatePesertaUjian($jadwal);
+
+            return back()->with('success', "Jadwal {$jadwal->tipe_ujian} berhasil ditambahkan beserta {$result['total']} peserta ujian.");
         } catch (\Exception $e) {
             Log::error("SYSTEM_ERROR: Gagal membuat jadwal ujian", [
                 'message' => $e->getMessage(),
@@ -280,6 +283,37 @@ class JadwalUjianController extends Controller
         $riwayat = $peserta->pesertaKelasKuliah->riwayatPendidikan;
 
         return view('admin.ujian.print-kartu', compact('peserta', 'semuaUjian', 'mahasiswa', 'riwayat'));
+    }
+
+    /**
+     * Tandai permintaan cetak kartu sebagai sudah selesai / dicetak.
+     */
+    public function cetakKartu(string $pesertaUjianId)
+    {
+        try {
+            $peserta = PesertaUjian::with('pesertaKelasKuliah.riwayatPendidikan.mahasiswa.user')->findOrFail($pesertaUjianId);
+
+            $peserta->update([
+                'status_cetak' => PesertaUjian::CETAK_DICETAK,
+                'dicetak_pada' => now(),
+            ]);
+
+            Log::info("UJIAN_CETAK: Permintaan cetak kartu diselesaikan admin", [
+                'peserta_ujian_id' => $peserta->id,
+            ]);
+
+            if ($peserta->pesertaKelasKuliah && $peserta->pesertaKelasKuliah->riwayatPendidikan && $peserta->pesertaKelasKuliah->riwayatPendidikan->mahasiswa && $peserta->pesertaKelasKuliah->riwayatPendidikan->mahasiswa->user) {
+                $peserta->pesertaKelasKuliah->riwayatPendidikan->mahasiswa->user->notify(new \App\Notifications\KartuUjianSelesaiNotification($peserta));
+            }
+
+            return back()->with('success', 'Permintaan cetak kartu berhasil ditandai sebagai selesai.');
+        } catch (\Exception $e) {
+            Log::error("SYSTEM_ERROR: Gagal menyelesaikan permintaan cetak kartu", [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return back()->with('error', 'Gagal merubah status: ' . $e->getMessage());
+        }
     }
 
     /**

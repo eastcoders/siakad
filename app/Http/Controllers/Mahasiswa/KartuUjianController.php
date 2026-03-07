@@ -158,6 +158,9 @@ class KartuUjianController extends Controller
                 'mahasiswa' => $mahasiswa->nama_mahasiswa,
             ]);
 
+            $adminUsers = \App\Models\User::role(['admin', 'Super Admin'])->get();
+            \Illuminate\Support\Facades\Notification::send($adminUsers, new \App\Notifications\PermintaanCetakAdminNotification($peserta));
+
             return back()->with('success', 'Permintaan cetak kartu ujian berhasil diajukan. Silakan tunggu proses dari admin.');
         } catch (\Exception $e) {
             Log::error("SYSTEM_ERROR: Gagal ajukan cetak kartu ujian", [
