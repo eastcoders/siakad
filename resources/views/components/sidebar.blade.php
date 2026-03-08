@@ -420,6 +420,19 @@
                 </li>
             @endif
 
+            {{-- ── Ruang Wakil Direktur (Monitoring) ──────────────── --}}
+            @if(auth()->user()->hasRole('Wakil Direktur'))
+                <li class="menu-header mt-5 small text-uppercase">
+                    <span class="menu-header-text">Ruang Wakil Direktur</span>
+                </li>
+                <li class="menu-item {{ request()->routeIs('wadir.monitoring.*') ? 'active' : '' }}">
+                    <a href="{{ route('wadir.monitoring.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons ri-presentation-line"></i>
+                        <div data-i18n="Monitoring Perkuliahan">Monitoring Perkuliahan</div>
+                    </a>
+                </li>
+            @endif
+
         @elseif(session('active_role') == 'Pegawai')
             <li class="menu-header mt-5 small text-uppercase">
                 <span class="menu-header-text">Ruang Pegawai</span>

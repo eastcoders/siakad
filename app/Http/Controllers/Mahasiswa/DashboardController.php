@@ -62,8 +62,12 @@ class DashboardController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
-        // 4. Pengumuman Aktif
-        $pengumumans = Pengumuman::aktif()->latest()->take(5)->get();
+        // 4. Pengumuman Aktif (Kecuali AMI untuk Mahasiswa)
+        $pengumumans = Pengumuman::aktif()
+            ->where('judul', 'not like', '%AMI%')
+            ->latest()
+            ->take(5)
+            ->get();
 
         Log::info("DASHBOARD_MAHASISWA: Diakses oleh {$mahasiswa->nama_mahasiswa}");
 

@@ -379,6 +379,12 @@ Route::middleware(['auth', 'role:Direktur'])->prefix('direktur')->name('direktur
     Route::get('/rekap-kuisioner', [\App\Http\Controllers\Direktur\RekapKuisionerController::class, 'index'])->name('rekap-kuisioner.index');
     Route::get('/rekap-kuisioner/{kuisioner}', [\App\Http\Controllers\Direktur\RekapKuisionerController::class, 'show'])->name('rekap-kuisioner.show');
 });
+
+// --- Modul Wakil Direktur (Wadir) ---
+Route::middleware(['auth', 'role:Wakil Direktur'])->prefix('wadir')->name('wadir.')->group(function () {
+    Route::get('/monitoring', [\App\Http\Controllers\Wadir\MonitoringController::class, 'index'])->name('monitoring.index');
+    Route::get('/monitoring/{id}', [\App\Http\Controllers\Wadir\MonitoringController::class, 'show'])->name('monitoring.show');
+});
 // ------------------------------------------------------------------------------------------------- //
 
 

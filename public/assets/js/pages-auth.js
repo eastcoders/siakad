@@ -25,10 +25,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
           email: {
             validators: {
               notEmpty: {
-                message: 'Please enter your email'
-              },
-              emailAddress: {
-                message: 'Please enter valid email address'
+                message: 'Silakan masukkan NIM / Username Anda'
               }
             }
           },
