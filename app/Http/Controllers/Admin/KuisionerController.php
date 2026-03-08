@@ -11,8 +11,17 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
+use App\Services\KuisionerService;
+
 class KuisionerController extends Controller implements HasMiddleware
 {
+    protected $kuisionerService;
+
+    public function __construct(KuisionerService $kuisionerService)
+    {
+        $this->kuisionerService = $kuisionerService;
+    }
+
     public static function middleware(): array
     {
         return [
@@ -250,103 +259,7 @@ class KuisionerController extends Controller implements HasMiddleware
     {
         Log::info("SYNC_PULL: Membaca Rekapitulasi Laporan Kuesioner BPMI", ['id' => $kuisioner->id]);
 
-        $kuisioner->load([
-            'pertanyaans' => function ($q) {
-                $q->where('tipe_input', 'likert')->orderBy('urutan', 'asc');
-            },
-            'semester'
-        ]);
-
-        // Dapatkan Total Responden Valid (Distinct ID Mahasiswa)
-        $totalResponden = \App\Models\KuisionerSubmission::where('id_kuisioner', $kuisioner->id)->distinct('id_mahasiswa')->count('id_mahasiswa');
-
-        // Menghitung Target Partisipan (Coverage) & Rincian Mahasiswa
-        $activeSemesterId = $kuisioner->id_semester;
-
-        // Total Unik Mahasiswa yang memiliki KRS di semester aktif kuesioner
-        $totalMhsTarget = \App\Models\Mahasiswa::whereHas('riwayatPendidikans.pesertaKelasKuliahs.kelasKuliah', function ($q) use ($activeSemesterId) {
-            $q->where('id_semester', $activeSemesterId);
-        })->count();
-
-        // Total Mahasiswa yang SUDAH mengisi (Minimal 1 kali)
-        $totalMhsSudah = \App\Models\KuisionerSubmission::where('id_kuisioner', $kuisioner->id)
-            ->distinct('id_mahasiswa')
-            ->count('id_mahasiswa');
-
-        $totalMhsBelum = max(0, $totalMhsTarget - $totalMhsSudah);
-
-        if ($kuisioner->tipe === 'pelayanan') {
-            $targetPartisipan = $totalMhsTarget;
-            $totalResponden = $totalMhsSudah;
-        } elseif ($kuisioner->tipe === 'ami') {
-            // Target AMI: Semua User yang memiliki Jabatan Struktural Aktif + Admin
-            $userPunyaJabatan = \App\Models\UserJabatan::where('is_active', true)->pluck('user_id')->toArray();
-            $admins = \App\Models\User::role('admin')->pluck('id')->toArray();
-
-            $allTargetUserIds = array_unique(array_merge($userPunyaJabatan, $admins));
-            $targetPartisipan = count($allTargetUserIds);
-
-            $totalResponden = \App\Models\KuisionerSubmission::where('id_kuisioner', $kuisioner->id)
-                ->whereIn('id_user', $allTargetUserIds)
-                ->distinct('id_user')
-                ->count('id_user');
-        } else {
-            // Untuk dosen, total responden idealnya adalah total baris peserta_kelas_kuliah di semester itu
-            $targetPartisipan = \App\Models\PesertaKelasKuliah::whereHas('kelasKuliah', function ($q) use ($activeSemesterId) {
-                $q->where('id_semester', $activeSemesterId);
-            })->count();
-
-            // Re-evaluasi $totalResponden untuk tipe 'dosen' (Dihitung dari relasi kelas)
-            $totalResponden = \App\Models\KuisionerSubmission::where('id_kuisioner', $kuisioner->id)
-                ->whereNotNull('id_kelas_kuliah')
-                ->count();
-        }
-
-        $coverage = $targetPartisipan > 0 ? round(($totalResponden / $targetPartisipan) * 100, 1) : 0;
-
-        // --- Perhitungan Agregat per Pertanyaan (Khusus LIKERT) ---
-        $rekapPertanyaan = [];
-        $totalAverageSemua = 0;
-        $countPertanyaan = $kuisioner->pertanyaans->count();
-
-        foreach ($kuisioner->pertanyaans as $p) {
-            // Ambil Rata-rata dari tabel Jawaban Detail
-            $avgScore = \App\Models\KuisionerJawabanDetail::where('id_pertanyaan', $p->id)
-                ->avg('jawaban_skala') ?? 0;
-
-            $rekapPertanyaan[] = [
-                'teks' => $p->teks_pertanyaan,
-                'avg' => round($avgScore, 2),
-                'label' => $this->getKesimpulanSkor($avgScore)
-            ];
-
-            $totalAverageSemua += $avgScore;
-        }
-
-        $grandAverage = $countPertanyaan > 0 ? round($totalAverageSemua / $countPertanyaan, 2) : 0;
-        $grandKesimpulan = $this->getKesimpulanSkor($grandAverage);
-
-        // --- Perhitungan Agregat per Dosen (Hanya untuk Tipe Dosen) ---
-        $rekapDosen = [];
-        if ($kuisioner->tipe === 'dosen') {
-            $rekapDosen = \App\Models\KuisionerSubmission::where('kuisioner_submissions.id_kuisioner', $kuisioner->id)
-                ->join('kuisioner_jawaban_details', 'kuisioner_submissions.id', '=', 'kuisioner_jawaban_details.id_submission')
-                ->join('dosens', 'kuisioner_submissions.id_dosen', '=', 'dosens.id')
-                ->join('kuisioner_pertanyaans', 'kuisioner_jawaban_details.id_pertanyaan', '=', 'kuisioner_pertanyaans.id')
-                ->where('kuisioner_pertanyaans.tipe_input', 'likert')
-                ->select(
-                    'dosens.nama',
-                    'dosens.nidn',
-                    \DB::raw('AVG(kuisioner_jawaban_details.jawaban_skala) as avg_score')
-                )
-                ->groupBy('dosens.id', 'dosens.nama', 'dosens.nidn')
-                ->orderBy('avg_score', 'desc')
-                ->get()
-                ->map(function ($item) {
-                    $item->kesimpulan = $this->getKesimpulanSkor($item->avg_score);
-                    return $item;
-                });
-        }
+        $data = $this->kuisionerService->getRekapLaporan($kuisioner);
 
         // --- Sample Esai (Mengambil 5 komentar terbaru) ---
         $esaiTerbaru = \App\Models\KuisionerJawabanDetail::whereHas('pertanyaan', function ($q) use ($kuisioner) {
@@ -357,7 +270,10 @@ class KuisionerController extends Controller implements HasMiddleware
             ->limit(5)
             ->get();
 
-        return view('dosen.kuisioner.show', compact('kuisioner', 'totalResponden', 'totalMhsSudah', 'targetPartisipan', 'coverage', 'rekapPertanyaan', 'grandAverage', 'grandKesimpulan', 'esaiTerbaru', 'rekapDosen', 'totalMhsTarget', 'totalMhsBelum'));
+        return view('dosen.kuisioner.show', array_merge($data, [
+            'kuisioner' => $kuisioner,
+            'esaiTerbaru' => $esaiTerbaru
+        ]));
     }
 
     /**

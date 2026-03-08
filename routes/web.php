@@ -371,5 +371,15 @@ Route::middleware(['auth'])->prefix('jabatan')->name('jabatan.')->group(function
 });
 // ------------------------------------------------------------------------------------------------- //
 
+// --- Modul Direktur (Monitoring & Rekap Kuisioner) ---
+Route::middleware(['auth', 'role:Direktur'])->prefix('direktur')->name('direktur.')->group(function () {
+    Route::get('/monitoring', [\App\Http\Controllers\Direktur\MonitoringController::class, 'index'])->name('monitoring.index');
+    Route::get('/monitoring/{id}', [\App\Http\Controllers\Direktur\MonitoringController::class, 'show'])->name('monitoring.show');
+
+    Route::get('/rekap-kuisioner', [\App\Http\Controllers\Direktur\RekapKuisionerController::class, 'index'])->name('rekap-kuisioner.index');
+    Route::get('/rekap-kuisioner/{kuisioner}', [\App\Http\Controllers\Direktur\RekapKuisionerController::class, 'show'])->name('rekap-kuisioner.show');
+});
+// ------------------------------------------------------------------------------------------------- //
+
 
 require __DIR__ . '/auth.php';

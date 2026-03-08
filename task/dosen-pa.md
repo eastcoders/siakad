@@ -4,7 +4,7 @@
 - [x] Perbaiki nav-menu tidak active saat mengakses menu lihat detail KRS mahasiswa.
 - [x] Perbaiki tampilan button `lihat KRS` yang terlalu besar dikolomnya. 
 - [x] Jika mahasiswa belum memiliki KRS atau belum diisikan KRSnya, jangan tampilkan card status pengajuan KRSnya. 
-- [ ] Jika pesan pada notifikasi diklik langsung mengarah ke detail yang dimaksud, perbaiki tampilan button `lihat detail`, dan jika sudah diklik otomatis pesan tersebut sudah dibaca. 
+- [x] Jika pesan pada notifikasi diklik langsung mengarah ke detail yang dimaksud, perbaiki tampilan button `lihat detail`, dan jika sudah diklik otomatis pesan tersebut sudah dibaca. 
 
 
 ### Adding Feature 

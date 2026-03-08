@@ -401,6 +401,25 @@
                 </li>
             @endif
 
+            {{-- ── Ruang Direktur (Monitoring & Rekap) ────────────── --}}
+            @if(auth()->user()->hasRole('Direktur'))
+                <li class="menu-header mt-5 small text-uppercase">
+                    <span class="menu-header-text">Ruang Direktur</span>
+                </li>
+                <li class="menu-item {{ request()->routeIs('direktur.monitoring.*') ? 'active' : '' }}">
+                    <a href="{{ route('direktur.monitoring.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons ri-presentation-line"></i>
+                        <div data-i18n="Monitoring Perkuliahan">Monitoring Perkuliahan</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ request()->routeIs('direktur.rekap-kuisioner.*') ? 'active' : '' }}">
+                    <a href="{{ route('direktur.rekap-kuisioner.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons ri-bar-chart-box-line"></i>
+                        <div data-i18n="Rekap Kuisioner">Rekap Kuisioner</div>
+                    </a>
+                </li>
+            @endif
+
         @elseif(session('active_role') == 'Pegawai')
             <li class="menu-header mt-5 small text-uppercase">
                 <span class="menu-header-text">Ruang Pegawai</span>
