@@ -1,0 +1,81 @@
+# Laporan Audit Skema & Rekomendasi Arsitektur Jabatan
+**SIA-POLSA Academic System**
+
+## 1. Schema Audit Report (Current State)
+
+Berdasarkan audit pada skema database dan model Eloquent, berikut adalah temuan kondisi saat ini:
+
+### A. Struktur Pengguna & Profil
+- **Tabel `users`**: Menggunakan Spatie `HasRoles`. Terhubung ke `dosens` (1:1) dan `mahasiswas` (1:1).
+- **Tabel `dosens`**: Memiliki flag `is_struktural` (boolean) namun tidak memiliki referensi ke jabatan tertentu secara langsung. Terdapat metode [generateUserIfNotExists()](file:///d:/laragon/www/siakad/app/Models/Dosen.php#185-224) yang memberikan role standar [Dosen](file:///d:/laragon/www/siakad/app/Models/Dosen.php#12-225).
+- **Tabel `pegawais`**: Memiliki kolom `jabatan` dan `unit_kerja` berupa **string**. Ini adalah "Dead Data" karena tidak memiliki relasi fungsional ke sistem otorisasi.
+
+### B. Entitas Struktural (Fragmented)
+Saat ini jabatan struktural dikelola dalam tabel-tabel terpisah yang berdiri sendiri:
+- `kaprodis`: Terhubung ke `dosens` dan `program_studis`.
+- `bpmis`: Terhubung ke `dosens`.
+- `keuangans`, `kemahasiswaans`, `sarpras`, `personalias`: Terhubung ke `dosens` ATAU `pegawais`.
+- `direkturs`, `wakil_direkturs`: Terhubung ke `dosens`.
+
+**Kelemahan Sistem Saat Ini:**
+1. **Redundansi Tabel**: Setiap ada jabatan baru, pengembang membuat tabel baru (`direkturs`, `sarpras`, dll).
+2. **Otorisasi Manual**: Penambahan data di tabel `kaprodis` atau `bpmis` tidak secara otomatis memberikan Role Spatie terkait. Admin harus melakukan dua kali kerja (Input Jabatan + Assign Role).
+3. **Data Inconsistency**: Jika jabatan di tabel struktural dihapus, Role di tabel `roles` mungkin tetap melekat (zombie roles).
+4. **Pegawai Terabaikan**: Tabel `pegawais` hanya menyimpan teks jabatan tanpa integrasi sistem login yang kuat seperti pada entitas Dosen.
+
+---
+
+## 2. Proposed ERD (Jabatan to Role Mapping)
+
+Rekomendasi arsitektur terpusat untuk mengotomatisasi hak akses:
+
+### A. Tabel Master: `jabatans`
+Menyimpan definisi jabatan dan pemetaan Role-nya.
+- [id](file:///d:/laragon/www/siakad/app/Http/Controllers/Admin/KuisionerController.php#16-22): Primary Key
+- `nama_jabatan`: string (Contoh: "Ketua Program Studi", "Kepala Unit BPMI")
+- `kode_jabatan`: string (Unique, contoh: 'KAPRODI', 'BPMI')
+- `kategori`: enum ('dosen', 'pegawai', 'all')
+- `id_role`: foreignId (Relasi ke `roles.id` milik Spatie)
+- `is_unique`: boolean (Jika true, satu objek seperti Prodi hanya punya 1 pejabat aktif)
+
+### B. Tabel Transaksional: `pejabat_struktural`
+Menggantikan tabel fragmentasi (`kaprodis`, `bpmis`, dll).
+- [id](file:///d:/laragon/www/siakad/app/Http/Controllers/Admin/KuisionerController.php#16-22): Primary Key
+- `id_user`: foreignId (Relasi ke `users.id`)
+- `id_jabatan`: foreignId (Relasi ke `jabatans.id`)
+- `unit_id`: uuid/nullable (ID Prodi untuk Kaprodi, atau unit kerja lainnya)
+- `sk_tugas`: string
+- `tanggal_mulai`: date
+- `tanggal_selesai`: date (nullable)
+- `is_active`: boolean
+
+---
+
+## 3. Logic Sinkronisasi Otomatis (The Engine)
+
+### A. Eloquent Observer pada `PejabatStruktural`
+- **Created/Updated (if active)**: 
+  ```php
+  $user->assignRole($jabatan->role->name);
+  ```
+- **Deleted/Inactive**:
+  ```php
+  // Cek apakah user memiliki jabatan lain dengan role yang sama
+  if (!$user->hasAnotherActiveJabatanWithRole($role)) {
+      $user->removeRole($role->name);
+  }
+  ```
+
+### B. Arsitektur Multi-Role
+Sistem mendukung satu orang memiliki banyak jabatan (Contoh: Dosen tetap punya role [Dosen](file:///d:/laragon/www/siakad/app/Models/Dosen.php#12-225), saat jadi Kaprodi mendapat tambahan role [Kaprodi](file:///d:/laragon/www/siakad/app/Models/Kaprodi.php#9-35)). Role [Dosen](file:///d:/laragon/www/siakad/app/Models/Dosen.php#12-225) tidak akan hilang kecuali status kepegawaiannya non-aktif.
+
+---
+
+## 4. Migration & Refactoring Strategy
+
+Langkah transisi aman:
+1. **Fase 1**: Buat tabel `jabatans` dan `pejabat_struktural`.
+2. **Fase 2**: Daftarkan seluruh Role Spatie yang ada (`kaprodi`, [bpmi](file:///d:/laragon/www/siakad/app/Models/Dosen.php#99-106), `keuangan`, dll) ke dalam tabel `jabatans`.
+3. **Fase 3**: Jalankan script migrasi untuk menarik data dari tabel lama (`kaprodis`, `bpmis`, dll) ke tabel `pejabat_struktural`.
+4. **Fase 4**: Deploy Observer untuk menangani sinkronisasi di masa depan.
+5. **Fase 5 (Optional)**: Hapus tabel-tabel lama setelah verifikasi data 100% akurat.

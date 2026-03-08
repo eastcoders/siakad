@@ -29,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Kemahasiswaan::observe(\App\Observers\KemahasiswaanObserver::class);
         \App\Models\Direktur::observe(\App\Observers\DirekturObserver::class);
         \App\Models\WakilDirektur::observe(\App\Observers\WakilDirekturObserver::class);
+        \App\Models\UserJabatan::observe(\App\Observers\UserJabatanObserver::class);
 
         \Illuminate\Pagination\Paginator::useBootstrapFive();
 

@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Sarpras extends Model
 {
-    use HasFactory;
+    use \App\Models\Traits\JabatanAdapterTrait;
 
-    protected $fillable = ['id_dosen', 'id_pegawai', 'is_active'];
+    const KODE_JABATAN = 'Sarpras';
+
+    protected $fillable = ['user_id', 'nomor_sk', 'is_active'];
 
     public function dosen()
     {

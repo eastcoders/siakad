@@ -9,8 +9,11 @@ use App\Models\Dosen;
 class WakilDirektur extends Model
 {
     use HasFactory;
+    use \App\Models\Traits\JabatanAdapterTrait;
 
-    protected $fillable = ['id_dosen', 'tipe_wadir', 'is_active'];
+    const KODE_JABATAN = 'Wakil Direktur';
+
+    protected $fillable = ['user_id', 'nomor_sk', 'is_active'];
 
     public function dosen()
     {

@@ -85,6 +85,6 @@ class VerifikasiPembayaranController extends Controller
             abort(404, 'File bukti bayar tidak ditemukan.');
         }
 
-        return Storage::disk('local')->download($pembayaran->bukti_bayar);
+        return response()->download(Storage::disk('local')->path($pembayaran->bukti_bayar));
     }
 }

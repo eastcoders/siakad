@@ -1,8 +1,8 @@
 ## Role Mahasiswa
 
 ### Workflow change password default
-- Mahasiswa harus mengganti password default saat login pertama kali
-- Tampilkan modal form untuk mengganti password beserta nomer whatsapp dan email untuk keperluan notifikasi aplikasi. 
+- [ ] Mahasiswa harus mengganti password default saat login pertama kali
+- [ ] Tampilkan modal form untuk mengganti password beserta nomer whatsapp dan email untuk keperluan notifikasi aplikasi. 
 
 
 ### Fitur Pengajuan Surat

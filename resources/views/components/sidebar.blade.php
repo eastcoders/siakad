@@ -91,10 +91,10 @@
                 </a>
             </li>
             <li
-                class="menu-item {{ request()->routeIs(['admin.dosen.*', 'admin.direktur.*', 'admin.wakil-direktur.*']) ? 'active open' : '' }}">
+                class="menu-item {{ request()->routeIs(['admin.dosen.*', 'admin.kaprodi.*', 'admin.pembimbing-akademik.*']) ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons ri-user-line"></i>
-                    <div data-i18n="Dosen & Direksi">Dosen & Direksi</div>
+                    <div data-i18n="Dosen">Dosen</div>
                 </a>
                 <ul class="menu-sub">
                     <li class="menu-item {{ request()->routeIs('admin.dosen.*') ? 'active' : '' }}">
@@ -102,15 +102,24 @@
                             <div data-i18n="Daftar Dosen">Daftar Dosen</div>
                         </a>
                     </li>
-                    <li class="menu-item {{ request()->routeIs('admin.direktur.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.direktur.index') }}" class="menu-link">
-                            <div data-i18n="Direktur">Direktur</div>
+                    <!-- Tugas Akademik -->
+                    <li
+                        class="menu-item {{ request()->routeIs(['admin.kaprodi.*', 'admin.pembimbing-akademik.*']) ? 'active open' : '' }}">
+                        <a href="javascript:void(0);" class="menu-link menu-toggle">
+                            <div data-i18n="Tugas Akademik">Tugas Akademik</div>
                         </a>
-                    </li>
-                    <li class="menu-item {{ request()->routeIs('admin.wakil-direktur.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.wakil-direktur.index') }}" class="menu-link">
-                            <div data-i18n="Wakil Direktur">Wakil Direktur</div>
-                        </a>
+                        <ul class="menu-sub">
+                            <li class="menu-item {{ request()->routeIs('admin.kaprodi.*') ? 'active' : '' }}">
+                                <a href="{{ route('admin.kaprodi.index') }}" class="menu-link">
+                                    <div data-i18n="Kaprodi">Kaprodi</div>
+                                </a>
+                            </li>
+                            <li class="menu-item {{ request()->routeIs('admin.pembimbing-akademik.*') ? 'active' : '' }}">
+                                <a href="{{ route('admin.pembimbing-akademik.index') }}" class="menu-link">
+                                    <div data-i18n="Dosen PA">Dosen PA</div>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </li>
@@ -178,55 +187,12 @@
                 </ul>
             </li>
 
-            <!-- ── Manajemen Jabatan (Collapsible) ── -->
-            <li
-                class="menu-item {{ request()->routeIs(['admin.kaprodi.*', 'admin.bpmi.*', 'admin.pembimbing-akademik.*', 'admin.sarpras.*', 'admin.perpustakaan.*', 'admin.personalia.*', 'admin.kemahasiswaan.*', 'admin.keuangan.*']) ? 'active open' : '' }}">
-                <a href="javascript:void(0);" class="menu-link menu-toggle">
+            <!-- ── Manajemen Penugasan Struktural ── -->
+            <li class="menu-item {{ request()->routeIs('admin.manajemen-jabatan.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.manajemen-jabatan.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons ri-user-star-line"></i>
-                    <div data-i18n="Manajemen Jabatan">Manajemen Jabatan</div>
+                    <div data-i18n="Penugasan Struktural">Penugasan Struktural</div>
                 </a>
-                <ul class="menu-sub">
-                    <li class="menu-item {{ request()->routeIs('admin.kaprodi.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.kaprodi.index') }}" class="menu-link">
-                            <div data-i18n="Kaprodi">Kaprodi</div>
-                        </a>
-                    </li>
-                    <li class="menu-item {{ request()->routeIs('admin.bpmi.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.bpmi.index') }}" class="menu-link">
-                            <div data-i18n="BPMI">Anggota BPMI</div>
-                        </a>
-                    </li>
-                    <li class="menu-item {{ request()->routeIs('admin.pembimbing-akademik.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.pembimbing-akademik.index') }}" class="menu-link">
-                            <div data-i18n="Dosen PA">Dosen PA</div>
-                        </a>
-                    </li>
-                    <li class="menu-item {{ request()->routeIs('admin.sarpras.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.sarpras.index') }}" class="menu-link">
-                            <div data-i18n="Sarpras">Sarpras</div>
-                        </a>
-                    </li>
-                    <li class="menu-item {{ request()->routeIs('admin.perpustakaan.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.perpustakaan.index') }}" class="menu-link">
-                            <div data-i18n="Perpustakaan">Perpustakaan</div>
-                        </a>
-                    </li>
-                    <li class="menu-item {{ request()->routeIs('admin.personalia.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.personalia.index') }}" class="menu-link">
-                            <div data-i18n="Personalia">Personalia</div>
-                        </a>
-                    </li>
-                    <li class="menu-item {{ request()->routeIs('admin.kemahasiswaan.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.kemahasiswaan.index') }}" class="menu-link">
-                            <div data-i18n="Kemahasiswaan">Kemahasiswaan</div>
-                        </a>
-                    </li>
-                    <li class="menu-item {{ request()->routeIs('admin.keuangan.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.keuangan.index') }}" class="menu-link">
-                            <div data-i18n="Keuangan">Keuangan</div>
-                        </a>
-                    </li>
-                </ul>
             </li>
 
         @endif
@@ -307,7 +273,7 @@
                 <ul class="menu-sub">
                     <li class="menu-item {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
                         <a href="{{ route('admin.roles.index') }}" class="menu-link">
-                            <div data-i18n="Master Jabatan">Master Jabatan (Roles)</div>
+                            <div data-i18n="Daftar Role">Daftar Role (Spatie)</div>
                         </a>
                     </li>
                     <li class="menu-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">

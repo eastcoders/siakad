@@ -134,6 +134,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('direktur', \App\Http\Controllers\Admin\Jabatan\DirekturController::class)->except(['create', 'edit', 'show']);
     Route::resource('wakil-direktur', \App\Http\Controllers\Admin\Jabatan\WakilDirekturController::class)->except(['create', 'edit', 'show']);
 
+    // Manajemen Jabatan Terpusat (Struktur Baru)
+    Route::get('manajemen-jabatan/search-user', [\App\Http\Controllers\Admin\Jabatan\ManajemenJabatanController::class, 'searchUser'])->name('manajemen-jabatan.search-user');
+    Route::resource('manajemen-jabatan', \App\Http\Controllers\Admin\Jabatan\ManajemenJabatanController::class)->only(['index', 'store', 'destroy']);
+
     // --- Modul Kuesioner BPMI (Ditunda Ekstrak di Akhir File) ---
 
     // Rekapitulasi Nilai (Phase 1 & 2)

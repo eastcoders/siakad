@@ -10,14 +10,13 @@ use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 class Bpmi extends Model
 {
     use HasFactory;
+    use \App\Models\Traits\JabatanAdapterTrait;
+
+    const KODE_JABATAN = 'BPMI';
 
     protected $table = 'bpmis';
 
-    protected $fillable = [
-        'id_dosen',
-        'sk_tugas',
-        'is_active',
-    ];
+    protected $fillable = ['user_id', 'nomor_sk', 'is_active'];
 
     protected $casts = [
         'is_active' => 'boolean',
