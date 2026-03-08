@@ -195,6 +195,13 @@
                 </a>
             </li>
 
+            <li class="menu-item {{ request()->routeIs('jabatan.kuisioner.*') ? 'active' : '' }}">
+                <a href="{{ route('jabatan.kuisioner.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-survey-line"></i>
+                    <div data-i18n="Kuisioner AMI">Kuisioner AMI</div>
+                </a>
+            </li>
+
         @endif
 
         <!-- ============================================== -->
@@ -323,8 +330,8 @@
             <li class="menu-header mt-5 small text-uppercase">
                 <span class="menu-header-text">Layanan</span>
             </li>
-            <li class="menu-item">
-                <a href="#" class="menu-link">
+            <li class="menu-item {{ request()->routeIs('jabatan.kuisioner.*') ? 'active' : '' }}">
+                <a href="{{ route('jabatan.kuisioner.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons ri-survey-line"></i>
                     <div data-i18n="Kuisioner AMI">Kuisioner AMI</div>
                 </a>
@@ -398,8 +405,8 @@
             <li class="menu-header mt-5 small text-uppercase">
                 <span class="menu-header-text">Ruang Pegawai</span>
             </li>
-            <li class="menu-item">
-                <a href="#" class="menu-link">
+            <li class="menu-item {{ request()->routeIs('jabatan.kuisioner.*') ? 'active' : '' }}">
+                <a href="{{ route('jabatan.kuisioner.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons ri-survey-line"></i>
                     <div data-i18n="Kuisioner AMI">Kuisioner AMI</div>
                 </a>

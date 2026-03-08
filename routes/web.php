@@ -362,6 +362,13 @@ Route::middleware(['auth', 'role:admin|BPMI|bpmi'])->prefix('dosen')->name('dose
     Route::resource('kuisioner', App\Http\Controllers\Admin\KuisionerController::class);
     Route::post('kuisioner/{kuisioner}/sync-pertanyaan', [App\Http\Controllers\Admin\KuisionerController::class, 'syncPertanyaan'])->name('kuisioner.pertanyaan.sync');
 });
+
+// --- Modul Responden Kuisioner AMI (Untuk Pejabat Struktural & Admin) ---
+Route::middleware(['auth'])->prefix('jabatan')->name('jabatan.')->group(function () {
+    Route::get('kuisioner', [App\Http\Controllers\Jabatan\KuisionerRespondenController::class, 'index'])->name('kuisioner.index');
+    Route::get('kuisioner/{kuisioner}', [App\Http\Controllers\Jabatan\KuisionerRespondenController::class, 'show'])->name('kuisioner.show');
+    Route::post('kuisioner/{kuisioner}', [App\Http\Controllers\Jabatan\KuisionerRespondenController::class, 'store'])->name('kuisioner.store');
+});
 // ------------------------------------------------------------------------------------------------- //
 
 

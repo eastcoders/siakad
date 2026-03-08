@@ -16,10 +16,16 @@ class KuisionerSubmission extends Model
     protected $fillable = [
         'id_kuisioner',
         'id_mahasiswa',
+        'id_user',
         'id_kelas_kuliah',
         'id_dosen',
         'status_sinkronisasi',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'id_user');
+    }
 
     public function kuisioner()
     {

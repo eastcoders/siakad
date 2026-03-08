@@ -50,8 +50,8 @@ class KuisionerController extends Controller implements HasMiddleware
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'id_semester' => 'required|exists:semesters,id_semester',
-            'target_ujian' => 'required|in:UTS,UAS',
-            'tipe' => 'required|in:pelayanan,dosen',
+            'target_ujian' => 'required_unless:tipe,ami|nullable|in:UTS,UAS',
+            'tipe' => 'required|in:pelayanan,dosen,ami',
         ]);
 
         try {
@@ -110,7 +110,23 @@ class KuisionerController extends Controller implements HasMiddleware
 
         try {
             // Update Core Data
+            $oldStatus = $kuisioner->status;
             $kuisioner->update($request->only('judul', 'deskripsi', 'status'));
+
+            // Auto Announcement if type is AMI and status changed to published
+            if ($kuisioner->tipe === 'ami' && $oldStatus !== 'published' && $kuisioner->status === 'published') {
+                \App\Models\Pengumuman::create([
+                    'judul' => "Pengisian Kuisioner AMI: {$kuisioner->judul}",
+                    'konten' => "Yth. Bapak/Ibu Pejabat Struktural dan Admin, mohon kesediaannya untuk mengisi Kuisioner Audit Mutu Internal (AMI) periode {$kuisioner->semester->nama_semester}. Terima kasih.",
+                    'kategori' => 'kuisioner',
+                    'tgl_mulai' => now(),
+                    'tgl_selesai' => now()->addDays(14), // Default 2 minggu
+                    'is_active' => true,
+                    'created_by' => auth()->id(),
+                ]);
+
+                Log::info("SYNC_SUCCESS: [AMI] Pengumuman otomatis berhasil dibuat untuk AMI: {$kuisioner->judul}");
+            }
 
             Log::info("CRUD_UPDATE: [Kuisioner] Status form telah diperbarui", [
                 'id' => $kuisioner->id,
@@ -262,6 +278,18 @@ class KuisionerController extends Controller implements HasMiddleware
         if ($kuisioner->tipe === 'pelayanan') {
             $targetPartisipan = $totalMhsTarget;
             $totalResponden = $totalMhsSudah;
+        } elseif ($kuisioner->tipe === 'ami') {
+            // Target AMI: Semua User yang memiliki Jabatan Struktural Aktif + Admin
+            $userPunyaJabatan = \App\Models\UserJabatan::where('is_active', true)->pluck('user_id')->toArray();
+            $admins = \App\Models\User::role('admin')->pluck('id')->toArray();
+
+            $allTargetUserIds = array_unique(array_merge($userPunyaJabatan, $admins));
+            $targetPartisipan = count($allTargetUserIds);
+
+            $totalResponden = \App\Models\KuisionerSubmission::where('id_kuisioner', $kuisioner->id)
+                ->whereIn('id_user', $allTargetUserIds)
+                ->distinct('id_user')
+                ->count('id_user');
         } else {
             // Untuk dosen, total responden idealnya adalah total baris peserta_kelas_kuliah di semester itu
             $targetPartisipan = \App\Models\PesertaKelasKuliah::whereHas('kelasKuliah', function ($q) use ($activeSemesterId) {

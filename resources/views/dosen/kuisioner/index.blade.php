@@ -67,6 +67,8 @@
                                     @if($item->tipe === 'dosen')
                                         <span class="badge bg-label-primary"><i class="ri-user-star-line me-1"></i>Kinerja
                                             Dosen</span>
+                                    @elseif($item->tipe === 'ami')
+                                        <span class="badge bg-label-warning"><i class="ri-shield-user-line me-1"></i>AMI</span>
                                     @else
                                         <span class="badge bg-label-success"><i
                                                 class="ri-customer-service-2-line me-1"></i>Pelayanan</span>
@@ -172,14 +174,13 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label required">Target Gatekeeping Ujian</label>
-                                    <select name="target_ujian" class="form-select" required>
+                                    <label class="form-label">Target Gatekeeping Ujian <span class="text-danger" id="targetUjianRequiredMark">*</span></label>
+                                    <select name="target_ujian" id="target_ujian_select" class="form-select" required>
                                         <option value="">Pilih Tahap Ujian</option>
                                         <option value="UTS">Hanya UTS</option>
                                         <option value="UAS">Hanya UAS</option>
                                     </select>
-                                    <div class="form-text mt-1 text-muted">Mahasiswa akan dihadang saat Cetak Kartu jika belum
-                                        mengisi.</div>
+                                    <div class="form-text mt-1 text-muted" id="targetUjianHelpText">Mahasiswa akan dihadang saat Cetak Kartu jika belum mengisi.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label required">Kategori Pertanyaan</label>
@@ -187,6 +188,7 @@
                                         <option value="">Pilih Kategori</option>
                                         <option value="pelayanan">Pelayanan Akademik</option>
                                         <option value="dosen">Kinerja Dosen</option>
+                                        <option value="ami">Audit Mutu Internal (AMI)</option>
                                     </select>
                                     <div class="form-text mt-1 text-muted">Tipe "Kinerja Dosen" akan diulang sebanyak variasi
                                         kelas yang diambil mahasiswa.</div>
@@ -346,6 +348,20 @@
                         form.submit();
                     }
                 });
+            });
+
+            // Handle Tipe Change for Target Ujian behavior
+            $('select[name="tipe"]').on('change', function() {
+                const tipe = $(this).val();
+                if (tipe === 'ami') {
+                    $('#target_ujian_select').removeAttr('required');
+                    $('#targetUjianRequiredMark').addClass('d-none');
+                    $('#targetUjianHelpText').html('<i class="ri-information-line"></i> Opsional untuk AMI karena tidak terkait gatekeeping mahasiswa.');
+                } else {
+                    $('#target_ujian_select').attr('required', 'required');
+                    $('#targetUjianRequiredMark').removeClass('d-none');
+                    $('#targetUjianHelpText').text('Mahasiswa akan dihadang saat Cetak Kartu jika belum mengisi.');
+                }
             });
         });
     </script>
