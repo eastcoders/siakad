@@ -86,19 +86,31 @@ class UjianService
                 }
 
                 // 3. Simpan/Update peserta ujian (updateOrCreate untuk idempotency)
-                PesertaUjian::updateOrCreate(
-                    [
+                // Gunakan base attributes untuk penemuan, dan values untuk update. 
+                // status_cetak hanya diatur ke 'belum' jika data baru dibuat.
+                $pesertaUjian = PesertaUjian::where([
+                    'jadwal_ujian_id' => $jadwalUjian->id,
+                    'peserta_kelas_kuliah_id' => $pkk->id,
+                ])->first();
+
+                if ($pesertaUjian) {
+                    $pesertaUjian->update([
+                        'is_eligible' => $isEligible,
+                        'keterangan_tidak_layak' => $keterangan,
+                        'persentase_kehadiran' => $persentase,
+                        'jumlah_hadir' => $jumlahHadir,
+                    ]);
+                } else {
+                    PesertaUjian::create([
                         'jadwal_ujian_id' => $jadwalUjian->id,
                         'peserta_kelas_kuliah_id' => $pkk->id,
-                    ],
-                    [
                         'is_eligible' => $isEligible,
                         'keterangan_tidak_layak' => $keterangan,
                         'persentase_kehadiran' => $persentase,
                         'jumlah_hadir' => $jumlahHadir,
                         'status_cetak' => PesertaUjian::CETAK_BELUM,
-                    ]
-                );
+                    ]);
+                }
 
                 $result['total']++;
                 $isEligible ? $result['eligible']++ : $result['not_eligible']++;

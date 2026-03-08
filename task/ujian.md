@@ -9,4 +9,10 @@
 - [x] Berikan gap pada button aksi di menu Permintaan Cetak Kartu. 
 - [x] Jika jadwal ujian sudah dibuat, sistem otomatis menjalankan fungsi `generate peserta`.
 - [x] Perbaiki tampilan parent nav-items saat membuat items pada child didalam childnya agar tercollapse saat ada childnya yang aktif.
-- [ ] Perbaiki tampilan alert error saat melakukan pengajuan cetak kartu ujian jika belum mengisi kuisioner. `Akses Dilarang: Anda belum mengevaluasi seluruh dosen pengampu pada formulir &#039;Test Kuis Dosen&#039;. (Telah selesai: 0 dari 7 Pengajar). Segera lengkapi untuk membuka akses cetak UAS.`. jika memungkinkan disable akses ceta jika mahasiswa belum menyelesaikan kuisionernya.
+
+- [x] Perbaiki tampilan alert error saat melakukan pengajuan cetak kartu ujian jika belum mengisi kuisioner. Serta disable akses cetak jika mahasiswa belum menyelesaikan kuisionernya. 
+- [x] Perbaiki akses cetak kartu ujian, terjadi bug/kesalahan dimana ujian dengan tipe UAS hanya mengisi kuisioner yang ditujukan untuk UAS saja. setelah dilakukan testing manual, mahasiswa sudah mengisi kuisioner untuk UAS yaitu evaluasi kinerja dosen. kuisioner sudah diisi hingga statusnya menjadi 100% namun akses cetak kartu ujian masih belum terbuka.
+- [x] Analisa dan perbaiki error pada saat mencoba cetak kartu ujian setelah mengisi kuisioner evaluasi dosen, tidak ada pesan yang spesifik mengenai kesalahan yang terjadi. hanya muncul alert berisi "Terjadi Kesalahan Sistem".
+- [x] Terjadi kesalahan atau bug pada logika `generate peserta` pada kondisi mahasiswa belum melunasi tagihan saat admin/akademik menambahkan generate peserta. setelah saya mencoba testing dengan melunasi tagihan. saya tidak dapat mengupdate peserta ujian. lakukan analisa logika saat ini dan berikan best practices untuk mengatasi kasus seperti ini. 
+- [x] Tambahkan peringatan pada menu Kartu Ujian di Role Mahasiswa untuk memberitahu jika mahasiswa tersebut belum mengambil atau mengajukan KRS. Dimana jika mahasiswa belum mengambil KRS mahasiswa tersebut tidak dapat mengikuti ujian dan ikut presensi kelas. Kemudian rapihkan UI table peserta ujian di tampilan admin dengan memperbaiki ui button `cetak kartu` dengan `tandai dicetak` karena terlalu nempel. tambahkan juga aksi sinkronisasi data peserta ujian pada halaman manajemen jadwal ujian. [x]
+- [ ] 

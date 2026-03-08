@@ -42,13 +42,80 @@ class KartuUjianController extends Controller
             ])
             ->get();
 
+        // Evaluasi penyelesaian kuesioner untuk UTS & UAS
+        $kuesionerStatus = [
+            'UTS' => ['is_lengkap' => true, 'pesan' => ''],
+            'UAS' => ['is_lengkap' => true, 'pesan' => '']
+        ];
+
+        foreach (['UTS', 'UAS'] as $tipe) {
+            // 1. Cek Pelayanan
+            $pendingPelayanan = \App\Models\Kuisioner::where('id_semester', $semesterId)
+                ->where('target_ujian', $tipe)
+                ->where('tipe', 'pelayanan')
+                ->where('status', 'published')
+                ->whereDoesntHave('submissions', function ($q) use ($mahasiswa) {
+                    $q->where('id_mahasiswa', $mahasiswa->id);
+                })->first();
+
+            if ($pendingPelayanan) {
+                $kuesionerStatus[$tipe] = [
+                    'is_lengkap' => false,
+                    'pesan' => "Wajib mengisi kuesioner pelayanan: '{$pendingPelayanan->judul}'"
+                ];
+                continue;
+            }
+
+            // 2. Cek Dosen
+            $kd = \App\Models\Kuisioner::where('id_semester', $semesterId)
+                ->where('target_ujian', $tipe)
+                ->where('tipe', 'dosen')
+                ->where('status', 'published')
+                ->first();
+
+            if ($kd) {
+                $idKelasDiambil = \App\Models\PesertaKelasKuliah::whereIn('riwayat_pendidikan_id', $riwayatIds)
+                    ->whereHas('kelasKuliah', function ($q) use ($semesterId) {
+                        $q->where('id_semester', $semesterId);
+                    })->pluck('id_kelas_kuliah');
+
+                // Hitung dosen unik (mempertimbangkan alias lokal)
+                $countDosenTarget = \App\Models\DosenPengajarKelasKuliah::whereIn('id_kelas_kuliah', $idKelasDiambil)
+                    ->selectRaw('COUNT(DISTINCT COALESCE(id_dosen_alias_lokal, id_dosen)) as total')
+                    ->first()->total;
+
+                if ($countDosenTarget > 0) {
+                    $countSubmitDosen = \App\Models\KuisionerSubmission::where('id_kuisioner', $kd->id)
+                        ->where('id_mahasiswa', $mahasiswa->id)
+                        ->whereNotNull('id_kelas_kuliah')
+                        ->whereNotNull('id_dosen')
+                        ->distinct('id_dosen')
+                        ->count();
+
+                    if ($countSubmitDosen < $countDosenTarget) {
+                        $kuesionerStatus[$tipe] = [
+                            'is_lengkap' => false,
+                            'pesan' => "Belum mengevaluasi seluruh pengajar ({$countSubmitDosen}/{$countDosenTarget}) pada formulir '{$kd->judul}'"
+                        ];
+                    }
+                }
+            }
+        }
+
+        // Cek apakah mahasiswa punya KRS (PesertaKelasKuliah) di semester aktif
+        $hasKrs = \App\Models\PesertaKelasKuliah::whereIn('riwayat_pendidikan_id', $riwayatIds)
+            ->whereHas('kelasKuliah', function ($q) use ($semesterId) {
+                $q->where('id_semester', $semesterId);
+            })->exists();
+
         Log::info("MAHASISWA_KARTU_UJIAN: Diakses", [
             'mahasiswa' => $mahasiswa->nama_mahasiswa,
             'tipe_kelas' => $tipeKelas,
             'count' => $pesertaUjians->count(),
+            'has_krs' => $hasKrs,
         ]);
 
-        return view('mahasiswa.ujian.index', compact('pesertaUjians', 'mahasiswa', 'tipeKelas'));
+        return view('mahasiswa.ujian.index', compact('pesertaUjians', 'mahasiswa', 'tipeKelas', 'kuesionerStatus', 'hasKrs'));
     }
 
     /**
@@ -127,19 +194,22 @@ class KartuUjianController extends Controller
                         $q->where('id_semester', $semesterId);
                     })->pluck('id_kelas_kuliah');
 
-                // Hitung total individu dosen (Utama + Alias) yang terlibat di kelas-kelas tersebut
-                $countDosenTarget = \App\Models\DosenPengajarKelasKuliah::whereIn('id_kelas_kuliah', $idKelasDiambil)->count();
+                // Hitung total individu dosen unik (Utama + Alias) yang terlibat di kelas-kelas tersebut
+                $countDosenTarget = \App\Models\DosenPengajarKelasKuliah::whereIn('id_kelas_kuliah', $idKelasDiambil)
+                    ->selectRaw('COUNT(DISTINCT COALESCE(id_dosen_alias_lokal, id_dosen)) as total')
+                    ->first()->total;
 
                 if ($countDosenTarget > 0) {
                     foreach ($kuesionerDosen as $kd) {
                         $countSubmitDosen = \App\Models\KuisionerSubmission::where('id_kuisioner', $kd->id)
                             ->where('id_mahasiswa', $mahasiswa->id)
                             ->whereNotNull('id_kelas_kuliah')
-                            ->whereNotNull('id_dosen') // Validasi per individu dosen
+                            ->whereNotNull('id_dosen')
+                            ->distinct('id_dosen')
                             ->count();
 
                         if ($countSubmitDosen < $countDosenTarget) {
-                            return back()->with('error', "Akses Dilarang: Anda belum mengevaluasi seluruh dosen pengampu pada formulir '{$kd->judul}'. (Telah selesai: {$countSubmitDosen} dari {$countDosenTarget} Pengajar). Segera lengkapi untuk membuka akses cetak {$tipeUjian}.");
+                            return back()->with('error', "Akses Dilarang: Anda belum mengevaluasi seluruh pengajar (Tuntas: {$countSubmitDosen} dari {$countDosenTarget}) pada formulir '{$kd->judul}'. Segera lengkapi untuk membuka akses cetak {$tipeUjian}.");
                         }
                     }
                 }
@@ -158,7 +228,7 @@ class KartuUjianController extends Controller
                 'mahasiswa' => $mahasiswa->nama_mahasiswa,
             ]);
 
-            $adminUsers = \App\Models\User::role(['admin', 'Super Admin'])->get();
+            $adminUsers = \App\Models\User::role(['admin'])->get();
             \Illuminate\Support\Facades\Notification::send($adminUsers, new \App\Notifications\PermintaanCetakAdminNotification($peserta));
 
             return back()->with('success', 'Permintaan cetak kartu ujian berhasil diajukan. Silakan tunggu proses dari admin.');

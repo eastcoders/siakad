@@ -13,8 +13,15 @@
                 </p>
             </div>
             <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                <form action="{{ route('admin.ujian.generate-peserta', $jadwal->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-primary"
+                        onclick="return confirm('Sinkronkan ulang data kelayakan seluruh peserta?')">
+                        <i class="ri-refresh-line me-1"></i> Sinkronisasi Data
+                    </button>
+                </form>
                 <a href="{{ route('admin.ujian.index', ['id_semester' => $jadwal->id_semester]) }}"
-                    class="btn btn-label-secondary">
+                    class="btn btn-label-secondary ms-2">
                     <i class="ri-arrow-left-line me-1"></i> Kembali
                 </a>
             </div>
@@ -130,24 +137,21 @@
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center align-items-center gap-1">
                                             @if($peserta->can_print)
-                                                <div class="btn-group btn-group-sm">
-                                                    <a href="{{ route('admin.ujian.print-kartu', $peserta->id) }}" target="_blank"
-                                                        class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip"
-                                                        title="Cetak Kartu">
-                                                        <i class="ri-printer-line"></i>
-                                                    </a>
-                                                    @if($peserta->status_cetak !== 'dicetak')
-                                                        <form
-                                                            action="{{ route('admin.ujian.mark-printed', [$jadwal->id, $peserta->id]) }}"
-                                                            method="POST" class="d-inline">
-                                                            @csrf
-                                                            <button type="submit" class="btn btn-sm btn-outline-success"
-                                                                data-bs-toggle="tooltip" title="Tandai Dicetak">
-                                                                <i class="ri-checkbox-circle-line"></i>
-                                                            </button>
-                                                        </form>
-                                                    @endif
-                                                </div>
+                                                <a href="{{ route('admin.ujian.print-kartu', $peserta->id) }}" target="_blank"
+                                                    class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip"
+                                                    title="Cetak Kartu">
+                                                    <i class="ri-printer-line"></i>
+                                                </a>
+                                                @if($peserta->status_cetak !== 'dicetak')
+                                                    <form action="{{ route('admin.ujian.mark-printed', [$jadwal->id, $peserta->id]) }}"
+                                                        method="POST" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-success"
+                                                            data-bs-toggle="tooltip" title="Tandai Dicetak">
+                                                            <i class="ri-checkbox-circle-line"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             @endif
 
                                             @if(!$peserta->is_eligible)
@@ -160,6 +164,17 @@
                                                         data-bs-toggle="tooltip"
                                                         title="{{ $peserta->is_dispensasi ? 'Cabut Dispensasi' : 'Berikan Dispensasi' }}">
                                                         <i class="ri-shield-keyhole-line"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
+
+                                            @if($peserta->status_cetak === 'belum')
+                                                <form action="{{ route('admin.ujian.generate-peserta', $jadwal->id) }}"
+                                                    method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-outline-info"
+                                                        data-bs-toggle="tooltip" title="Refresh Kelayakan (Sinkronisasi)">
+                                                        <i class="ri-refresh-line"></i>
                                                     </button>
                                                 </form>
                                             @endif

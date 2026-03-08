@@ -353,6 +353,8 @@ Route::middleware(['auth', 'role:Dosen'])->prefix('dosen')->name('dosen.')->grou
 // ------------------------------------------------------------------------------------------------- //
 // --- Modul Kuesioner (Hak Akses Bersama: Administrator dan Tim Penjamin Mutu Internal / BPMI) --- //
 Route::middleware(['auth', 'role:admin|BPMI|bpmi'])->prefix('dosen')->name('dosen.')->group(function () {
+    Route::get('kuisioner/{kuisioner}/esai', [App\Http\Controllers\Admin\KuisionerController::class, 'laporanEsai'])->name('kuisioner.esai');
+    Route::get('kuisioner/{kuisioner}/export', [\App\Http\Controllers\Admin\KuisionerController::class, 'export'])->name('kuisioner.export');
     Route::resource('kuisioner', App\Http\Controllers\Admin\KuisionerController::class);
     Route::post('kuisioner/{kuisioner}/sync-pertanyaan', [App\Http\Controllers\Admin\KuisionerController::class, 'syncPertanyaan'])->name('kuisioner.pertanyaan.sync');
 });

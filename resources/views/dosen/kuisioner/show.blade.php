@@ -15,7 +15,10 @@
                             class="ri-calendar-line me-1"></i>{{ $kuisioner->semester->nama_semester ?? '' }}</span>
                 </div>
             </div>
-            <div>
+            <div class="d-flex gap-2">
+                <a href="{{ route('dosen.kuisioner.export', $kuisioner->id) }}" class="btn btn-success">
+                    <i class="ri-file-excel-2-line me-1"></i> Export Excel
+                </a>
                 <a href="{{ route('dosen.kuisioner.index') }}" class="btn btn-outline-secondary">
                     <i class="ri-arrow-left-line me-1"></i> Kembali
                 </a>
@@ -25,22 +28,43 @@
         <div class="row g-4 mb-4">
             <!-- Partisipasi Card -->
             <div class="col-sm-6 col-lg-4">
-                <div class="card h-100">
+                <div class="card h-100 border-0 shadow-sm">
                     <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="content-left">
-                                <span class="fw-semibold">Tingkat Partisipasi</span>
-                                <div class="d-flex align-items-end mt-2">
-                                    <h3 class="mb-0 me-2">{{ $coverage }}%</h3>
-                                    <small class="text-success">(Coverage)</small>
-                                </div>
-                                <small class="mb-0 text-muted">{{ $totalResponden }} dari {{ $targetPartisipan }}
-                                    Target</small>
-                            </div>
-                            <div class="avatar">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-bold text-muted">Statistik Partisipasi</span>
+                            <div class="avatar avatar-sm">
                                 <span class="avatar-initial rounded bg-label-primary">
-                                    <i class="ri-group-line ri-24px"></i>
+                                    <i class="ri-group-line ri-20px"></i>
                                 </span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-end mb-2">
+                            <h2 class="mb-0 me-2 fw-bold text-primary">{{ $coverage }}%</h2>
+                            <small class="text-success mb-1">(Coverage)</small>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            <div class="progress-bar" role="progressbar" style="width: {{ $coverage }}%"
+                                aria-valuenow="{{ $coverage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="bg-light p-2 rounded text-center">
+                                    <h6 class="mb-0 fw-bold">{{ $totalMhsSudah }}</h6>
+                                    <small class="text-muted fs-tiny">Sudah Mengisi</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="bg-light p-2 rounded text-center">
+                                    <h6 class="mb-0 fw-bold text-danger">{{ $totalMhsBelum }}</h6>
+                                    <small class="text-muted fs-tiny">Belum Mengisi</small>
+                                </div>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <small class="text-muted">Total Target Mahasiswa KRS:
+                                    <strong>{{ $totalMhsTarget }} Orang</strong></small>
+                                <br>
+                                <small class="text-muted">Total Data Respon: <strong>{{ $totalResponden }}
+                                        Entri</strong></small>
                             </div>
                         </div>
                     </div>
@@ -82,79 +106,132 @@
             </div>
         </div>
 
-        <!-- Data Table Rekap Per Pertanyaan -->
+    </div>
+
+    <!-- Rekapitulasi Per Dosen (Hanya tampil jika tipe kuesioner adalah DOSEN) -->
+    @if($kuisioner->tipe === 'dosen' && $rekapDosen->isNotEmpty())
         <div class="card mb-4">
-            <h5 class="card-header border-bottom">Perincian Skor Rata-Rata per Pertanyaan (Skala Likert)</h5>
+            <h5 class="card-header border-bottom">Rekapitulasi Nilai per Dosen Pengampu</h5>
             <div class="table-responsive text-nowrap">
                 <table class="table table-hover">
                     <thead class="table-light">
                         <tr>
                             <th style="width: 5%">No</th>
-                            <th style="width: 50%">Aspek Pertanyaan</th>
-                            <th style="width: 20%" class="text-center">Nilai Rata-Rata (AVG)</th>
-                            <th style="width: 25%" class="text-center">Kategori Indeks</th>
+                            <th style="width: 45%">Nama Dosen</th>
+                            <th style="width: 15%">NIDN</th>
+                            <th style="width: 15%" class="text-center">Nilai Rata-Rata (AVG)</th>
+                            <th style="width: 20%" class="text-center">Kategori</th>
                         </tr>
                     </thead>
                     <tbody class="table-border-bottom-0">
-                        @forelse($rekapPertanyaan as $index => $rp)
+                        @foreach($rekapDosen as $index => $rd)
                             <tr>
                                 <td>{{ $index + 1 }}</td>
-                                <td class="text-wrap"><strong>{{ $rp['teks'] }}</strong></td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar avatar-sm me-2">
+                                            <span
+                                                class="avatar-initial rounded-circle bg-label-primary">{{ substr($rd->nama, 0, 1) }}</span>
+                                        </div>
+                                        <span class="fw-bold">{{ $rd->nama }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ $rd->nidn ?? '-' }}</td>
                                 <td class="text-center">
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <span class="fw-bold fs-5 me-1">{{ number_format($rp['avg'], 2) }}</span>
+                                        <span class="fw-bold fs-5 me-1">{{ number_format($rd->avg_score, 2) }}</span>
                                         <i class="ri-star-fill text-warning fs-6"></i>
                                     </div>
                                 </td>
                                 <td class="text-center">
-                                    <span
-                                        class="badge bg-label-{{ $rp['label']['color'] }} w-100 py-2">{{ $rp['label']['teks'] }}</span>
+                                    <span class="badge bg-label-{{ $rd->kesimpulan['color'] }} w-100 py-2">
+                                        {{ $rd->kesimpulan['teks'] }}
+                                    </span>
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-4">
-                                    <i class="ri-survey-line ri-2x mb-2 d-block"></i>
-                                    Belum ada instrumen perhitungan Likert (Skala 1-5) pada formulir ini.
-                                </td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
+    @endif
 
-        <!-- Sample Esai Terbuka -->
-        @if($esaiTerbaru->isNotEmpty())
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center border-bottom">
-                    <h5 class="mb-0"><i class="ri-chat-quote-line text-primary me-2"></i> Sorotan Masukan Bebas (Esai) Mahasiswa
-                    </h5>
-                </div>
-                <div class="card-body pt-3">
-                    <div class="list-group list-group-flush">
-                        @foreach($esaiTerbaru as $esai)
-                            <div class="list-group-item list-group-item-action d-flex align-items-start py-3">
-                                <div class="avatar me-3 mt-1">
-                                    <span class="avatar-initial rounded-circle bg-label-secondary"><i
-                                            class="ri-user-smile-line"></i></span>
+    <!-- Data Table Rekap Per Pertanyaan -->
+    <div class="card mb-4">
+        <h5 class="card-header border-bottom">Perincian Skor Rata-Rata per Pertanyaan (Skala Likert)</h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 5%">No</th>
+                        <th style="width: 50%">Aspek Pertanyaan</th>
+                        <th style="width: 20%" class="text-center">Nilai Rata-Rata (AVG)</th>
+                        <th style="width: 25%" class="text-center">Kategori Indeks</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    @forelse($rekapPertanyaan as $index => $rp)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td class="text-wrap"><strong>{{ $rp['teks'] }}</strong></td>
+                            <td class="text-center">
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <span class="fw-bold fs-5 me-1">{{ number_format($rp['avg'], 2) }}</span>
+                                    <i class="ri-star-fill text-warning fs-6"></i>
                                 </div>
-                                <div class="w-100">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <h6 class="mb-0 text-primary">{{ Str::limit($esai->pertanyaan->teks_pertanyaan, 60) }}</h6>
-                                        <small class="text-muted">{{ $esai->created_at->diffForHumans() }}</small>
-                                    </div>
-                                    <p class="mb-0 text-dark" style="font-size: 0.9rem;">"{{ $esai->jawaban_teks }}"</p>
-                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span
+                                    class="badge bg-label-{{ $rp['label']['color'] }} w-100 py-2">{{ $rp['label']['teks'] }}</span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="ri-survey-line ri-2x mb-2 d-block"></i>
+                                Belum ada instrumen perhitungan Likert (Skala 1-5) pada formulir ini.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Sample Esai Terbuka -->
+    @if($esaiTerbaru->isNotEmpty())
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center border-bottom">
+                <h5 class="mb-0"><i class="ri-chat-quote-line text-primary me-2"></i> Sorotan Masukan Bebas (Esai) Mahasiswa
+                </h5>
+            </div>
+            <div class="card-body pt-3">
+                <div class="list-group list-group-flush">
+                    @foreach($esaiTerbaru as $esai)
+                        <div class="list-group-item list-group-item-action d-flex align-items-start py-3">
+                            <div class="avatar me-3 mt-1">
+                                <span class="avatar-initial rounded-circle bg-label-secondary"><i
+                                        class="ri-user-smile-line"></i></span>
                             </div>
-                        @endforeach
-                    </div>
-                    <div class="text-center mt-3">
-                        <span class="text-muted fs-tiny">Menampilkan 5 masukan terbuka terbaru... Fitur ekspor penuh CSV akan
-                            hadir pada pembaruan SIAKAD berikutnya.</span>
-                    </div>
+                            <div class="w-100">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <h6 class="mb-0 text-primary">{{ Str::limit($esai->pertanyaan->teks_pertanyaan, 60) }}</h6>
+                                    <small class="text-muted">{{ $esai->created_at->diffForHumans() }}</small>
+                                </div>
+                                <p class="mb-0 text-dark" style="font-size: 0.9rem;">"{{ $esai->jawaban_teks }}"</p>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="text-center mt-3 d-flex flex-column gap-2 align-items-center">
+                    <a href="{{ route('dosen.kuisioner.esai', $kuisioner->id) }}" class="btn btn-primary">
+                        <i class="ri-eye-line me-1"></i> Lihat Semua Masukan Esai (Detail)
+                    </a>
+                    <span class="text-muted fs-tiny">Menampilkan 5 masukan terbuka terbaru di atas. Klik tombol untuk melihat
+                        daftar lengkap secara anonim.</span>
                 </div>
             </div>
-        @endif
+        </div>
+    @endif
     </div>
 @endsection

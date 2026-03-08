@@ -70,8 +70,8 @@
                                         class="ri-user-star-line"></i></span>
                             </div>
                             <div>
-                                <h6 class="mb-0 text-info">Mata Kuliah: {{ $kelasAktif->mataKuliah->nama_mata_kuliah }}</h6>
-                                <span class="text-muted small">Dosen Pengampu:
+                                <h6 class="mb-0 text-info">Evaluasi Kinerja Pengajar</h6>
+                                <span class="text-muted small">Dosen yang dievaluasi:
                                     <strong>{{ $dosenAktif->nama_tampilan ?? 'Tidak Diketahui' }}</strong></span>
                             </div>
                         </div>

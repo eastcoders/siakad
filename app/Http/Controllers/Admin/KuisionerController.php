@@ -244,19 +244,24 @@ class KuisionerController extends Controller implements HasMiddleware
         // Dapatkan Total Responden Valid (Distinct ID Mahasiswa)
         $totalResponden = \App\Models\KuisionerSubmission::where('id_kuisioner', $kuisioner->id)->distinct('id_mahasiswa')->count('id_mahasiswa');
 
-        // Menghitung Target Partisipan (Coverage)
-        $targetPartisipan = 0;
+        // Menghitung Target Partisipan (Coverage) & Rincian Mahasiswa
         $activeSemesterId = $kuisioner->id_semester;
 
+        // Total Unik Mahasiswa yang memiliki KRS di semester aktif kuesioner
+        $totalMhsTarget = \App\Models\Mahasiswa::whereHas('riwayatPendidikans.pesertaKelasKuliahs.kelasKuliah', function ($q) use ($activeSemesterId) {
+            $q->where('id_semester', $activeSemesterId);
+        })->count();
+
+        // Total Mahasiswa yang SUDAH mengisi (Minimal 1 kali)
+        $totalMhsSudah = \App\Models\KuisionerSubmission::where('id_kuisioner', $kuisioner->id)
+            ->distinct('id_mahasiswa')
+            ->count('id_mahasiswa');
+
+        $totalMhsBelum = max(0, $totalMhsTarget - $totalMhsSudah);
+
         if ($kuisioner->tipe === 'pelayanan') {
-            // Asumsi: Semua mahasiswa yang memiliki riwayat_pendidikan di semester tersebut
-            $targetPartisipan = \App\Models\Mahasiswa::whereHas('riwayatPendidikans', function ($q) use ($activeSemesterId) {
-                // Di sistem Neo Feeder, biasanya semester berjalan dikorelasikan di Krs/PesertaKelasKuliah. 
-                // Kita sederhanakan dengan mengambil user aktif yang memiliki KRS semester tersebut
-                $q->whereHas('pesertaKelasKuliahs.kelasKuliah', function ($q2) use ($activeSemesterId) {
-                    $q2->where('id_semester', $activeSemesterId);
-                });
-            })->count();
+            $targetPartisipan = $totalMhsTarget;
+            $totalResponden = $totalMhsSudah;
         } else {
             // Untuk dosen, total responden idealnya adalah total baris peserta_kelas_kuliah di semester itu
             $targetPartisipan = \App\Models\PesertaKelasKuliah::whereHas('kelasKuliah', function ($q) use ($activeSemesterId) {
@@ -293,6 +298,28 @@ class KuisionerController extends Controller implements HasMiddleware
         $grandAverage = $countPertanyaan > 0 ? round($totalAverageSemua / $countPertanyaan, 2) : 0;
         $grandKesimpulan = $this->getKesimpulanSkor($grandAverage);
 
+        // --- Perhitungan Agregat per Dosen (Hanya untuk Tipe Dosen) ---
+        $rekapDosen = [];
+        if ($kuisioner->tipe === 'dosen') {
+            $rekapDosen = \App\Models\KuisionerSubmission::where('kuisioner_submissions.id_kuisioner', $kuisioner->id)
+                ->join('kuisioner_jawaban_details', 'kuisioner_submissions.id', '=', 'kuisioner_jawaban_details.id_submission')
+                ->join('dosens', 'kuisioner_submissions.id_dosen', '=', 'dosens.id')
+                ->join('kuisioner_pertanyaans', 'kuisioner_jawaban_details.id_pertanyaan', '=', 'kuisioner_pertanyaans.id')
+                ->where('kuisioner_pertanyaans.tipe_input', 'likert')
+                ->select(
+                    'dosens.nama',
+                    'dosens.nidn',
+                    \DB::raw('AVG(kuisioner_jawaban_details.jawaban_skala) as avg_score')
+                )
+                ->groupBy('dosens.id', 'dosens.nama', 'dosens.nidn')
+                ->orderBy('avg_score', 'desc')
+                ->get()
+                ->map(function ($item) {
+                    $item->kesimpulan = $this->getKesimpulanSkor($item->avg_score);
+                    return $item;
+                });
+        }
+
         // --- Sample Esai (Mengambil 5 komentar terbaru) ---
         $esaiTerbaru = \App\Models\KuisionerJawabanDetail::whereHas('pertanyaan', function ($q) use ($kuisioner) {
             $q->where('id_kuisioner', $kuisioner->id)->where('tipe_input', 'esai');
@@ -302,7 +329,55 @@ class KuisionerController extends Controller implements HasMiddleware
             ->limit(5)
             ->get();
 
-        return view('dosen.kuisioner.show', compact('kuisioner', 'totalResponden', 'targetPartisipan', 'coverage', 'rekapPertanyaan', 'grandAverage', 'grandKesimpulan', 'esaiTerbaru'));
+        return view('dosen.kuisioner.show', compact('kuisioner', 'totalResponden', 'totalMhsSudah', 'targetPartisipan', 'coverage', 'rekapPertanyaan', 'grandAverage', 'grandKesimpulan', 'esaiTerbaru', 'rekapDosen', 'totalMhsTarget', 'totalMhsBelum'));
+    }
+
+    /**
+     * Tampilkan Detail Semua Jawaban Esai dari Kuesioner ini.
+     */
+    public function laporanEsai(Kuisioner $kuisioner)
+    {
+        Log::info("SYNC_PULL: Membaca Detail Jawaban Esai BPMI", ['id' => $kuisioner->id]);
+
+        $kuisioner->load([
+            'semester',
+            'pertanyaans' => function ($q) {
+                $q->where('tipe_input', 'esai')->orderBy('urutan', 'asc');
+            }
+        ]);
+
+        // Partisipasi Unik Mahasiswa
+        $totalMahasiswa = \App\Models\KuisionerSubmission::where('id_kuisioner', $kuisioner->id)
+            ->distinct('id_mahasiswa')
+            ->count('id_mahasiswa');
+
+        $pertanyaans = $kuisioner->pertanyaans;
+
+        foreach ($pertanyaans as $p) {
+            $p->jawaban_esai = \App\Models\KuisionerJawabanDetail::where('id_pertanyaan', $p->id)
+                ->whereNotNull('jawaban_teks')
+                ->where('jawaban_teks', '!=', '')
+                ->with(['submission.dosen', 'submission.kelas.mataKuliah'])
+                ->latest()
+                ->get();
+        }
+
+        return view('dosen.kuisioner.laporan_esai', compact('kuisioner', 'pertanyaans', 'totalMahasiswa'));
+    }
+
+    /**
+     * Export Hasil Kuesioner ke Excel.
+     */
+    public function export(Kuisioner $kuisioner)
+    {
+        Log::info("CRUD_EXPORT: [Kuisioner] Mengunduh hasil kuesioner ke Excel", ['id' => $kuisioner->id]);
+
+        $fileName = 'Hasil_Kuesioner_' . \Str::slug($kuisioner->judul) . '_' . date('Ymd_His') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\KuisionerExport($kuisioner),
+            $fileName
+        );
     }
 
     /**

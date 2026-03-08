@@ -99,9 +99,6 @@
                                         <a href="{{ route('mahasiswa.kuisioner.show', ['kuisioner' => $kd->id, 'kelas' => $kelasContoh->id, 'dosen' => $dosenId]) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-2">
                                             <div>
                                                 <div class="fw-semibold" style="font-size: 0.85rem;"><i class="ri-user-line me-1"></i> {{ $pengajar->nama_tampilan }}</div>
-                                                <div class="text-muted" style="font-size: 0.75rem;">
-                                                    <i class="ri-book-read-line me-1"></i> (Contoh Kelas: {{ $kelasContoh->mataKuliah->nama_mata_kuliah }})
-                                                </div>
                                             </div>
                                             <i class="ri-file-edit-line text-primary"></i>
                                         </a>

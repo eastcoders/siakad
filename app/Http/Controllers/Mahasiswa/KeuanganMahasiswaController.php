@@ -7,6 +7,8 @@ use App\Models\Pembayaran;
 use App\Models\Tagihan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class KeuanganMahasiswaController extends Controller
 {
@@ -66,6 +68,9 @@ class KeuanganMahasiswaController extends Controller
             'jumlah_bayar.min' => 'Jumlah bayar minimal Rp 1.000.',
         ]);
 
+        DB::beginTransaction();
+        $path = null;
+
         try {
             // Simpan file ke private storage
             $file = $request->file('bukti_bayar');
@@ -86,6 +91,8 @@ class KeuanganMahasiswaController extends Controller
             $notifiableUsers = \App\Models\User::role(['admin', 'Keuangan'])->get();
             \Illuminate\Support\Facades\Notification::send($notifiableUsers, new \App\Notifications\UploadPembayaranNotification($pembayaran));
 
+            DB::commit();
+
             Log::info("CRUD_CREATE: Mahasiswa upload bukti bayar", [
                 'mahasiswa_id' => $mahasiswa->id,
                 'tagihan_id' => $tagihan->id,
@@ -95,8 +102,15 @@ class KeuanganMahasiswaController extends Controller
 
             return back()->with('success', 'Bukti pembayaran berhasil diunggah. Menunggu verifikasi admin.');
         } catch (\Exception $e) {
+            DB::rollBack();
+
+            // Hapus file jika proses DB gagal
+            if ($path && Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+
             Log::error("SYSTEM_ERROR: Gagal upload bukti bayar", ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Terjadi kesalahan saat mengunggah bukti bayar.');
+            return back()->with('error', 'Terjadi kesalahan saat mengunggah bukti bayar: ' . $e->getMessage());
         }
     }
 

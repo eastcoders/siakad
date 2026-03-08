@@ -16,7 +16,7 @@
     @endif
     @if(session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="ri-error-warning-line me-2"></i>{{ session('error') }}
+            <i class="ri-error-warning-line me-2"></i>{!! session('error') !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
@@ -30,6 +30,18 @@
     <div class="row">
         <!-- Info Kelayakan Ujian -->
         <div class="col-12 mb-4">
+            @if(!$hasKrs)
+                <div class="alert alert-danger d-flex align-items-center mb-3 shadow-sm border-0" role="alert">
+                    <i class="ri-error-warning-line fs-4 me-3 text-danger"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1 fw-bold">Peringatan: KRS Belum Terdata!</h6>
+                        <span>Anda tercatat <strong>belum mengambil/mengajukan KRS</strong> untuk semester ini. Mahasiswa yang
+                            belum memiliki KRS tidak diperbolehkan mengikuti ujian maupun presensi kelas. Segera hubungi Bagian
+                            Akademik atau Kaprodi.</span>
+                    </div>
+                </div>
+            @endif
+
             <div class="alert alert-info d-flex align-items-center mb-0 shadow-sm border-0" role="alert">
                 <i class="ri-information-line fs-4 me-3 text-info"></i>
                 <div>
@@ -263,13 +275,26 @@
                                                 <i class="ri-loader-4-line me-1"></i>Menunggu
                                             </span>
                                         @else
-                                            <form action="{{ route('mahasiswa.ujian.ajukan-cetak', $pu->id) }}" method="POST"
-                                                class="d-inline">
-                                                @csrf
-                                                <button type="submit" class="btn btn-sm btn-primary btn-ajukan-cetak">
-                                                    <i class="ri-printer-line me-1"></i> Ajukan Cetak
+                                            @php
+                                                $tipeUjian = $pu->jadwalUjian->tipe_ujian;
+                                                $statusK = $kuesionerStatus[$tipeUjian] ?? ['is_lengkap' => true, 'pesan' => ''];
+                                            @endphp
+
+                                            @if(!$statusK['is_lengkap'])
+                                                <button class="btn btn-sm btn-label-danger" disabled data-bs-toggle="tooltip"
+                                                    data-bs-html="true"
+                                                    title="<i class='ri-error-warning-line me-1'></i> {{ $statusK['pesan'] }}">
+                                                    <i class="ri-lock-line"></i> Kuesioner
                                                 </button>
-                                            </form>
+                                            @else
+                                                <form action="{{ route('mahasiswa.ujian.ajukan-cetak', $pu->id) }}" method="POST"
+                                                    class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-primary btn-ajukan-cetak">
+                                                        <i class="ri-printer-line me-1"></i> Ajukan Cetak
+                                                    </button>
+                                                </form>
+                                            @endif
                                         @endif
                                     </td>
                                 </tr>

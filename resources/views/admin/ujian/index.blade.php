@@ -140,8 +140,8 @@
                                                 onsubmit="return confirm('Generate/update peserta ujian untuk kelas ini?');">
                                                 @csrf
                                                 <button type="submit" class="btn btn-sm btn-outline-success"
-                                                    data-bs-toggle="tooltip" title="Generate Peserta">
-                                                    <i class="ri-user-add-line"></i>
+                                                    data-bs-toggle="tooltip" title="Sinkronisasi Data Peserta">
+                                                    <i class="ri-refresh-line"></i>
                                                 </button>
                                             </form>
                                             <button type="button" class="btn btn-sm btn-outline-primary btn-edit-jadwal"

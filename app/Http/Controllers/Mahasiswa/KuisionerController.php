@@ -124,7 +124,7 @@ class KuisionerController extends Controller
 
             $kelasId = $request->kelas;
             $dosenId = $request->dosen;
-            $kelasAktif = \App\Models\KelasKuliah::findOrFail($kelasId);
+            $kelasAktif = \App\Models\KelasKuliah::with('mataKuliah')->findOrFail($kelasId);
             $dosenAktif = \App\Models\Dosen::findOrFail($dosenId);
 
             // Verifikasi apakah dia peserta di kelas ini
