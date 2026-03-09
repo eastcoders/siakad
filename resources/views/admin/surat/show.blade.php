@@ -64,22 +64,22 @@
                                 </li>
                                 <li class="mb-3">
                                     <span class="fw-bold">Jenis Surat:</span>
-                                    <span class="float-end text-primary">
-                                        @if($surat->tipe_surat == 'aktif_kuliah')
-                                            Aktif Kuliah
-                                        @elseif($surat->tipe_surat == 'pindah_kelas')
-                                            Pindah Kelas
-                                        @elseif($surat->tipe_surat == 'pindah_pt')
-                                            Pindah PT
-                                        @elseif($surat->tipe_surat == 'pengunduran_diri')
-                                            Pengunduran Diri
-                                        @elseif($surat->tipe_surat == 'izin_pkl')
-                                            Izin PKL
-                                        @elseif($surat->tipe_surat == 'permintaan_data')
-                                            Permintaan Data
-                                        @else
-                                            Cuti Kuliah
-                                        @endif
+                                    <span class="float-end">
+                                        @php
+                                            $typeConfig = match ($surat->tipe_surat) {
+                                                'aktif_kuliah' => ['color' => 'info', 'icon' => 'ri-file-user-line', 'label' => 'Aktif Kuliah'],
+                                                'cuti_kuliah' => ['color' => 'warning', 'icon' => 'ri-calendar-close-line', 'label' => 'Cuti Kuliah'],
+                                                'pindah_kelas' => ['color' => 'primary', 'icon' => 'ri-arrow-left-right-line', 'label' => 'Pindah Kelas'],
+                                                'pindah_pt' => ['color' => 'dark', 'icon' => 'ri-community-line', 'label' => 'Pindah PT'],
+                                                'pengunduran_diri' => ['color' => 'danger', 'icon' => 'ri-error-warning-line', 'label' => 'Pengunduran Diri'],
+                                                'izin_pkl' => ['color' => 'success', 'icon' => 'ri-map-pin-line', 'label' => 'Izin PKL'],
+                                                'permintaan_data' => ['color' => 'secondary', 'icon' => 'ri-database-2-line', 'label' => 'Permintaan Data'],
+                                                default => ['color' => 'secondary', 'icon' => 'ri-file-line', 'label' => $surat->tipe_surat],
+                                            };
+                                        @endphp
+                                        <span class="badge bg-label-{{ $typeConfig['color'] }}">
+                                            <i class="{{ $typeConfig['icon'] }} me-1"></i> {{ $typeConfig['label'] }}
+                                        </span>
                                     </span>
                                 </li>
                                 <li class="mb-3">
@@ -101,25 +101,13 @@
                             <div class="mt-4">
                                 <h6 class="mb-3">Update Status</h6>
                                 <div class="d-flex flex-column gap-2">
-                                    @if($surat->status == 'pending')
-                                        <form action="{{ route('admin.surat-approval.update-status', $surat->id) }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="status" value="validasi">
-                                            <button type="submit" class="btn btn-info w-100">
-                                                <i class="ri-check-double-line me-1"></i> Validasi Berkas
-                                            </button>
-                                        </form>
-                                    @endif
-
-                                    @if($surat->status == 'validasi')
-                                        <form action="{{ route('admin.surat-approval.update-status', $surat->id) }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="status" value="disetujui">
-                                            <button type="submit" class="btn btn-primary w-100">
-                                                <i class="ri-thumb-up-line me-1"></i> Setujui Permohonan
-                                            </button>
-                                        </form>
-                                    @endif
+                                    <form action="{{ route('admin.surat-approval.update-status', $surat->id) }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="status" value="disetujui">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="ri-thumb-up-line me-1"></i> Setujui Permohonan
+                                        </button>
+                                    </form>
 
                                     <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal"
                                         data-bs-target="#rejectModal">

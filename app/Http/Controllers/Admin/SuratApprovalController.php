@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Notifications\SuratPermohonanNotification;
 
 class SuratApprovalController extends Controller
 {
@@ -38,7 +39,7 @@ class SuratApprovalController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:validasi,disetujui,ditolak',
+            'status' => 'required|in:disetujui,ditolak',
             'catatan_admin' => 'required_if:status,ditolak|nullable|string',
         ]);
 
@@ -51,6 +52,20 @@ class SuratApprovalController extends Controller
                 'status' => $request->status,
                 'catatan_admin' => $request->catatan_admin ?? $surat->catatan_admin,
             ]);
+
+            // Notify Mahasiswa
+            if ($surat->mahasiswa && $surat->mahasiswa->user) {
+                $surat->mahasiswa->user->notify(new SuratPermohonanNotification($surat, $request->status));
+            }
+
+            // Notify Partners if any
+            if ($surat->tipe_surat === 'izin_pkl') {
+                foreach ($surat->anggotas as $anggota) {
+                    if ($anggota->mahasiswa && $anggota->mahasiswa->user) {
+                        $anggota->mahasiswa->user->notify(new SuratPermohonanNotification($surat, $request->status));
+                    }
+                }
+            }
 
             DB::commit();
 
@@ -100,6 +115,20 @@ class SuratApprovalController extends Controller
                     'nomor_surat' => $request->nomor_surat,
                     'tgl_selesai' => now(),
                 ]);
+
+                // Notify Mahasiswa
+                if ($surat->mahasiswa && $surat->mahasiswa->user) {
+                    $surat->mahasiswa->user->notify(new SuratPermohonanNotification($surat, 'selesai'));
+                }
+
+                // Notify Partners if any
+                if ($surat->tipe_surat === 'izin_pkl') {
+                    foreach ($surat->anggotas as $anggota) {
+                        if ($anggota->mahasiswa && $anggota->mahasiswa->user) {
+                            $anggota->mahasiswa->user->notify(new SuratPermohonanNotification($surat, 'selesai'));
+                        }
+                    }
+                }
             }
 
             DB::commit();

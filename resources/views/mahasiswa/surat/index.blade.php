@@ -41,22 +41,21 @@
                             <tr>
                                 <td><strong>{{ $surat->nomor_tiket }}</strong></td>
                                 <td>
-                                    @if($surat->tipe_surat == 'aktif_kuliah')
-                                        <span class="badge bg-label-info">Aktif Kuliah</span>
-                                    @elseif($surat->tipe_surat == 'cuti_kuliah')
-                                        <span class="badge bg-label-warning">Cuti Kuliah</span>
-                                    @elseif($surat->tipe_surat == 'pindah_kelas')
-                                        <span class="badge bg-label-primary">Pindah Kelas</span>
-                                    @elseif($surat->tipe_surat == 'pindah_pt')
-                                        <span class="badge bg-label-dark"><i class="ri-community-line me-1"></i> Pindah PT</span>
-                                    @elseif($surat->tipe_surat == 'pengunduran_diri')
-                                        <span class="badge bg-label-danger"><i class="ri-error-warning-line me-1"></i> Pengunduran
-                                            Diri</span>
-                                    @elseif($surat->tipe_surat == 'izin_pkl')
-                                        <span class="badge bg-label-success"><i class="ri-map-pin-line me-1"></i> Izin PKL</span>
-                                    @else
-                                        <span class="badge bg-label-secondary">{{ $surat->tipe_surat }}</span>
-                                    @endif
+                                    @php
+                                        $typeConfig = match ($surat->tipe_surat) {
+                                            'aktif_kuliah' => ['color' => 'info', 'icon' => 'ri-file-user-line', 'label' => 'Aktif Kuliah'],
+                                            'cuti_kuliah' => ['color' => 'warning', 'icon' => 'ri-calendar-close-line', 'label' => 'Cuti Kuliah'],
+                                            'pindah_kelas' => ['color' => 'primary', 'icon' => 'ri-arrow-left-right-line', 'label' => 'Pindah Kelas'],
+                                            'pindah_pt' => ['color' => 'dark', 'icon' => 'ri-community-line', 'label' => 'Pindah PT'],
+                                            'pengunduran_diri' => ['color' => 'danger', 'icon' => 'ri-error-warning-line', 'label' => 'Pengunduran Diri'],
+                                            'izin_pkl' => ['color' => 'success', 'icon' => 'ri-map-pin-line', 'label' => 'Izin PKL'],
+                                            'permintaan_data' => ['color' => 'secondary', 'icon' => 'ri-database-2-line', 'label' => 'Permintaan Data'],
+                                            default => ['color' => 'secondary', 'icon' => 'ri-file-line', 'label' => $surat->tipe_surat],
+                                        };
+                                    @endphp
+                                    <span class="badge bg-label-{{ $typeConfig['color'] }}">
+                                        <i class="{{ $typeConfig['icon'] }} me-1"></i> {{ $typeConfig['label'] }}
+                                    </span>
                                 </td>
                                 <td>{{ $surat->tgl_pengajuan->format('d/m/Y H:i') }}</td>
                                 <td>{{ $surat->semester->nama_semester ?? $surat->id_semester }}</td>
