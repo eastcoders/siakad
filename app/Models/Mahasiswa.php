@@ -145,8 +145,13 @@ class Mahasiswa extends Model
         return $pa ? $pa->dosen : null;
     }
 
-    // Note: Parent education/job/income are stored as IDs on this table (e.g. id_pekerjaan_ayah), 
-    // so we don't usually map them as 'pekerjaan' (singular) for the student.
-    // If needed specifically for ayah/ibu, we can add:
-    // public function pekerjaanAyah() { return $this->belongsTo(Pekerjaan::class, 'id_pekerjaan_ayah', 'id_pekerjaan'); }
+    public function permohonans()
+    {
+        return $this->hasMany(SuratPermohonan::class, 'id_mahasiswa', 'id');
+    }
+
+    public function suratAnggota()
+    {
+        return $this->hasMany(SuratPermohonanAnggota::class, 'id_mahasiswa', 'id');
+    }
 }

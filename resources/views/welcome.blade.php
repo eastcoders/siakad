@@ -273,15 +273,20 @@
                                     </h5>
 
                                     <p class="card-text text-muted flex-grow-1 mb-6 lh-relaxed">
-                                        {{ \Illuminate\Support\Str::limit(strip_tags($announcement->content), 120) }}
+                                        {{ \Illuminate\Support\Str::limit(strip_tags($announcement->konten), 120) }}
                                     </p>
 
                                     <div class="mt-auto">
-                                        <a href="{{ $announcement->url ?? '#' }}"
-                                            class="btn btn-link p-0 fw-bold text-primary text-decoration-none d-inline-flex align-items-center">
+                                        <button type="button"
+                                            class="btn btn-link text-primary text-decoration-none d-inline-flex align-items-center view-announcement-btn"
+                                            data-bs-toggle="modal" data-bs-target="#announcementModal"
+                                            data-title="{{ $announcement->judul }}"
+                                            data-category="{{ $announcement->kategori ?? 'Akademik' }}"
+                                            data-date="{{ $announcement->created_at?->format('d M Y') ?? 'Terbaru' }}"
+                                            data-content="{{ $announcement->konten }}">
                                             Baca Selengkapnya
                                             <i class="ri-arrow-right-line ms-2 transition-all"></i>
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -394,6 +399,33 @@
     <!-- Page JS -->
     <script src="{{ asset('assets/js/front-page-landing.js') }}"></script>
 
+    <!-- Announcement Modal -->
+    <div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom border-light p-6">
+                    <div>
+                        <span id="modalCategory" class="badge bg-label-primary rounded-pill px-3 mb-2">Akademik</span>
+                        <h4 class="modal-title fw-bold text-heading" id="modalTitle">Detail Pengumuman</h4>
+                        <div class="text-muted small mt-1">
+                            <i class="ri-calendar-event-line me-1"></i>
+                            <span id="modalDate">Terbaru</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-6">
+                    <div id="modalContent" class="text-muted lh-lg">
+                        <!-- Content will be injected here -->
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 p-6 pt-0">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Navbar scroll effect handler
         (function () {
@@ -408,6 +440,30 @@
             window.addEventListener('scroll', handleScroll);
             handleScroll(); // Check on load
         })();
+
+        // Announcement Modal Handler
+        document.addEventListener('DOMContentLoaded', function () {
+            const modal = document.getElementById('announcementModal');
+            if (modal) {
+                modal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const title = button.getAttribute('data-title');
+                    const category = button.getAttribute('data-category');
+                    const date = button.getAttribute('data-date');
+                    const content = button.getAttribute('data-content');
+
+                    const modalTitle = modal.querySelector('#modalTitle');
+                    const modalCategory = modal.querySelector('#modalCategory');
+                    const modalDate = modal.querySelector('#modalDate');
+                    const modalContent = modal.querySelector('#modalContent');
+
+                    modalTitle.textContent = title;
+                    modalCategory.textContent = category;
+                    modalDate.textContent = date;
+                    modalContent.innerHTML = content;
+                });
+            }
+        });
     </script>
 </body>
 

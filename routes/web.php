@@ -138,6 +138,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('manajemen-jabatan/search-user', [\App\Http\Controllers\Admin\Jabatan\ManajemenJabatanController::class, 'searchUser'])->name('manajemen-jabatan.search-user');
     Route::resource('manajemen-jabatan', \App\Http\Controllers\Admin\Jabatan\ManajemenJabatanController::class)->only(['index', 'store', 'destroy']);
 
+    // Persetujuan Surat
+    Route::prefix('surat-approval')->name('surat-approval.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'index'])->name('index');
+        Route::get('/{id}', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'show'])->name('show');
+        Route::post('/{id}/status', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'updateStatus'])->name('update-status');
+        Route::post('/{id}/finalize', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'finalize'])->name('finalize');
+        Route::get('/{id}/download', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'download'])->name('download');
+    });
+
     // --- Modul Kuesioner BPMI (Ditunda Ekstrak di Akhir File) ---
 
     // Rekapitulasi Nilai (Phase 1 & 2)
@@ -314,6 +323,17 @@ Route::middleware(['auth', 'role:Mahasiswa'])->prefix('mahasiswa')->name('mahasi
         Route::get('/{tagihan}', [\App\Http\Controllers\Mahasiswa\KeuanganMahasiswaController::class, 'show'])->name('show');
         Route::post('/{tagihan}/upload', [\App\Http\Controllers\Mahasiswa\KeuanganMahasiswaController::class, 'uploadBukti'])->name('upload');
     });
+
+    // Permohonan Surat
+    Route::resource('surat', \App\Http\Controllers\Mahasiswa\SuratMahasiswaController::class)->names([
+        'index' => 'surat.index',
+        'create' => 'surat.create',
+        'store' => 'surat.store',
+        'show' => 'surat.show',
+    ]);
+    Route::get('surat/{id}/download', [\App\Http\Controllers\Mahasiswa\SuratMahasiswaController::class, 'download'])->name('surat.download');
+    Route::get('surat/api/search-pt', [\App\Http\Controllers\Mahasiswa\SuratMahasiswaController::class, 'searchPT'])->name('surat.search-pt');
+    Route::get('surat/api/search-mahasiswa', [\App\Http\Controllers\Mahasiswa\SuratMahasiswaController::class, 'searchMahasiswa'])->name('surat.search-mahasiswa');
 });
 
 Route::middleware(['auth', 'role:Pegawai'])->prefix('pegawai')->name('pegawai.')->group(function () {

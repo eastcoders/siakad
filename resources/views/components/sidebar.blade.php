@@ -184,6 +184,12 @@
                             </li>
                         </ul>
                     </li>
+
+                    <li class="menu-item {{ request()->routeIs('admin.surat-approval.*') ? 'active' : '' }}">
+                        <a href="{{ route('admin.surat-approval.index') }}" class="menu-link">
+                            <div data-i18n="Persetujuan Surat">Persetujuan Surat</div>
+                        </a>
+                    </li>
                 </ul>
             </li>
 
@@ -486,6 +492,12 @@
                 <a href="{{ route('mahasiswa.kuisioner.index') }}" class="menu-link">
                     <i class="menu-icon tf-icons ri-survey-line"></i>
                     <div data-i18n="Isi Kuesioner">Isi Kuesioner</div>
+                </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('mahasiswa.surat.*') ? 'active' : '' }}">
+                <a href="{{ route('mahasiswa.surat.index') }}" class="menu-link">
+                    <i class="menu-icon tf-icons ri-mail-send-line"></i>
+                    <div data-i18n="Permohonan Surat">Permohonan Surat</div>
                 </a>
             </li>
             <li class="menu-item {{ request()->routeIs('mahasiswa.keuangan.*') ? 'active' : '' }}">
