@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Persetujuan Surat Mahasiswa')
+@section('title', 'Validasi Surat Mahasiswa')
 
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
         <h4 class="fw-bold py-3 mb-4">
-            <span class="text-muted fw-light">Akademik /</span> Persetujuan Surat
+            <span class="text-muted fw-light">Kaprodi /</span> Validasi Surat
         </h4>
 
         @if(session('success'))
@@ -16,46 +16,10 @@
         @endif
 
         <div class="card">
-            <div class="card-header border-bottom">
-                <div class="d-flex align-items-center mb-3">
-                    <h5 class="card-title mb-0">Daftar Permohonan Surat</h5>
-                </div>
-                <div class="nav-align-top">
-                    <ul class="nav nav-tabs nav-fill" role="tablist">
-                        <li class="nav-item">
-                            <a href="{{ route('admin.surat-approval.index', ['status' => 'validasi']) }}"
-                                class="nav-link {{ $status == 'validasi' ? 'active' : '' }}">
-                                <i class="ri-check-double-line me-1"></i> Divalidasi Kaprodi
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.surat-approval.index', ['status' => 'pending']) }}"
-                                class="nav-link {{ $status == 'pending' ? 'active' : '' }}">
-                                <i class="ri-time-line me-1"></i> Menunggu Kaprodi
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.surat-approval.index', ['status' => 'disetujui']) }}"
-                                class="nav-link {{ $status == 'disetujui' ? 'active' : '' }}">
-                                <i class="ri-thumb-up-line me-1"></i> Disetujui
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.surat-approval.index', ['status' => 'selesai']) }}"
-                                class="nav-link {{ $status == 'selesai' ? 'active' : '' }}">
-                                <i class="ri-checkbox-circle-line me-1"></i> Selesai
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('admin.surat-approval.index', ['status' => 'ditolak']) }}"
-                                class="nav-link {{ $status == 'ditolak' ? 'active' : '' }}">
-                                <i class="ri-close-circle-line me-1"></i> Ditolak
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Daftar Permohonan Surat Prodi</h5>
             </div>
-            <div class="card-body mt-3">
+            <div class="card-body">
                 <div class="table-responsive text-nowrap">
                     <table class="table table-hover" id="table-surat">
                         <thead>
@@ -64,7 +28,6 @@
                                 <th>No. Tiket</th>
                                 <th>Mahasiswa</th>
                                 <th>Jenis Surat</th>
-                                <th>Semester</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -95,22 +58,21 @@
                                             <i class="{{ $typeConfig['icon'] }} me-1"></i> {{ $typeConfig['label'] }}
                                         </span>
                                     </td>
-                                    <td>{{ $surat->semester->nama_semester ?? $surat->id_semester }}</td>
                                     <td>
                                         @php
-                                            $statusClass = match ($surat->status) {
-                                                'pending' => 'bg-label-secondary',
-                                                'validasi' => 'bg-label-info',
-                                                'disetujui' => 'bg-label-primary',
-                                                'selesai' => 'bg-label-success',
-                                                'ditolak' => 'bg-label-danger',
-                                                default => 'bg-label-secondary',
+                                            $statusConfig = match ($surat->status) {
+                                                'pending' => ['class' => 'bg-label-secondary', 'label' => 'MENUNGGU KAPRODI'],
+                                                'validasi' => ['class' => 'bg-label-info', 'label' => 'DIVALIDASI (ADMIN)'],
+                                                'ditolak' => ['class' => 'bg-label-danger', 'label' => 'DITOLAK'],
+                                                'disetujui' => ['class' => 'bg-label-primary', 'label' => 'PROSES ADMIN'],
+                                                'selesai' => ['class' => 'bg-label-success', 'label' => 'SELESAI'],
+                                                default => ['class' => 'bg-label-secondary', 'label' => strtoupper($surat->status)],
                                             };
                                         @endphp
-                                        <span class="badge {{ $statusClass }}">{{ strtoupper($surat->status) }}</span>
+                                        <span class="badge {{ $statusConfig['class'] }}">{{ $statusConfig['label'] }}</span>
                                     </td>
                                     <td>
-                                        <a href="{{ route('admin.surat-approval.show', $surat->id) }}"
+                                        <a href="{{ route('kaprodi.surat.show', $surat->id) }}"
                                             class="btn btn-sm btn-icon btn-label-primary" title="Review">
                                             <i class="ri-search-line"></i>
                                         </a>

@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Permohonan Surat')
+@section('title', 'Detail Validasi Surat')
 
 @section('content')
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="fw-bold py-3 mb-0">
-                <span class="text-muted fw-light">Akademik / Persetujuan Surat /</span> Detail
+                <span class="text-muted fw-light">Kaprodi / Validasi Surat /</span> Detail
             </h4>
-            <a href="{{ route('admin.surat-approval.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ route('kaprodi.surat.index') }}" class="btn btn-outline-secondary">
                 <i class="ri-arrow-left-line me-1"></i> Kembali
             </a>
         </div>
@@ -43,7 +43,7 @@
                             </div>
                             <h4 class="mb-1">{{ $surat->mahasiswa->nama_mahasiswa }}</h4>
                             <p class="text-muted mb-0">{{ $surat->mahasiswa->nim }}</p>
-                            <p class="small text-muted mb-0">{{ $surat->mahasiswa->prodi->nama_prodi ?? '-' }}</p>
+                            <p class="small text-muted mb-0">{{ $surat->mahasiswa->riwayatAktif->prodi->nama_prodi ?? '-' }}</p>
                         </div>
 
                         <div class="info-container">
@@ -53,10 +53,10 @@
                                     @php
                                         $statusConfig = match ($surat->status) {
                                             'pending' => ['class' => 'bg-label-secondary', 'label' => 'MENUNGGU KAPRODI'],
-                                            'validasi' => ['class' => 'bg-label-info', 'label' => 'DIVALIDASI (SIAP)'],
-                                            'disetujui' => ['class' => 'bg-label-primary', 'label' => 'DISETUJUI ADMIN'],
-                                            'selesai' => ['class' => 'bg-label-success', 'label' => 'SELESAI'],
+                                            'validasi' => ['class' => 'bg-label-info', 'label' => 'DIVALIDASI (ADMIN)'],
                                             'ditolak' => ['class' => 'bg-label-danger', 'label' => 'DITOLAK'],
+                                            'disetujui' => ['class' => 'bg-label-primary', 'label' => 'PROSES ADMIN'],
+                                            'selesai' => ['class' => 'bg-label-success', 'label' => 'SELESAI'],
                                             default => ['class' => 'bg-label-secondary', 'label' => strtoupper($surat->status)],
                                         };
                                     @endphp
@@ -96,16 +96,16 @@
 
                         <hr>
 
-                        <!-- Status Update Actions -->
-                        @if(in_array($surat->status, ['pending', 'validasi']))
+                        <!-- Status Update Actions (Kaprodi Only) -->
+                        @if($surat->status == 'pending')
                             <div class="mt-4">
-                                <h6 class="mb-3">Update Status</h6>
+                                <h6 class="mb-3">Validasi Kaprodi</h6>
                                 <div class="d-flex flex-column gap-2">
-                                    <form action="{{ route('admin.surat-approval.update-status', $surat->id) }}" method="POST">
+                                    <form action="{{ route('kaprodi.surat.validate', $surat->id) }}" method="POST">
                                         @csrf
-                                        <input type="hidden" name="status" value="disetujui">
+                                        <input type="hidden" name="status" value="validasi">
                                         <button type="submit" class="btn btn-primary w-100">
-                                            <i class="ri-thumb-up-line me-1"></i> Setujui Permohonan
+                                            <i class="ri-check-double-line me-1"></i> Validasi & Teruskan
                                         </button>
                                     </form>
 
@@ -115,14 +115,9 @@
                                     </button>
                                 </div>
                             </div>
-                        @endif
-
-                        @if($surat->status == 'disetujui')
-                            <div class="mt-4">
-                                <button type="button" class="btn btn-success w-100" data-bs-toggle="modal"
-                                    data-bs-target="#finalizeModal">
-                                    <i class="ri-upload-cloud-2-line me-1"></i> Finalisasi & Upload Surat
-                                </button>
+                        @else
+                            <div class="alert alert-info">
+                                <i class="ri-information-line me-1"></i> Status permohonan ini sudah diproses.
                             </div>
                         @endif
                     </div>
@@ -135,7 +130,7 @@
                     <h5 class="card-header">Rincian Data Pengajuan</h5>
                     <div class="card-body">
                         @if($surat->tipe_surat == 'aktif_kuliah')
-                            <div class="row mb-4">
+                             <div class="row mb-4">
                                 <div class="col-12">
                                     <h6 class="text-primary border-bottom pb-2"><i class="ri-user-heart-line me-1"></i> Data
                                         Orang Tua / Wali</h6>
@@ -291,30 +286,10 @@
                             </div>
                         @endif
 
-                        @if($surat->status == 'selesai')
-                            <hr class="my-4">
-                            <div class="row">
-                                <div class="col-12">
-                                    <h6 class="text-success border-bottom pb-2"><i class="ri-file-check-line me-1"></i> Berkas
-                                        Final</h6>
-                                </div>
-                                <div class="col-sm-4 fw-bold">Nomor Surat:</div>
-                                <div class="col-sm-8 mb-2">{{ $surat->nomor_surat }}</div>
-                                <div class="col-sm-4 fw-bold">Tanggal Selesai:</div>
-                                <div class="col-sm-8 mb-2">{{ $surat->tgl_selesai->format('d/m/Y') }}</div>
-                                <div class="col-sm-12 mt-2">
-                                    <a href="{{ route('admin.surat-approval.download', $surat->id) }}" target="_blank"
-                                        class="btn btn-outline-success">
-                                        <i class="ri-download-line me-1"></i> Unduh/Lihat Surat
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
-
                         @if($surat->catatan_admin)
                             <hr class="my-4">
                             <div class="alert alert-warning mb-0">
-                                <strong><i class="ri-feedback-line me-1"></i> Catatan Admin:</strong><br>
+                                <strong><i class="ri-feedback-line me-1"></i> Catatan:</strong><br>
                                 {{ $surat->catatan_admin }}
                             </div>
                         @endif
@@ -327,7 +302,7 @@
     <!-- Reject Modal -->
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
-            <form class="modal-content" action="{{ route('admin.surat-approval.update-status', $surat->id) }}"
+            <form class="modal-content" action="{{ route('kaprodi.surat.validate', $surat->id) }}"
                 method="POST">
                 @csrf
                 <input type="hidden" name="status" value="ditolak">
@@ -338,50 +313,15 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col mb-3">
-                            <label for="catatan_admin" class="form-label">Alasan Penolakan</label>
-                            <textarea class="form-control" id="catatan_admin" name="catatan_admin" rows="3" required
-                                placeholder="Jelaskan mengapa permohonan ditolak (contoh: berkas tidak lengkap)"></textarea>
+                            <label for="catatan" class="form-label">Alasan Penolakan</label>
+                            <textarea class="form-control" id="catatan" name="catatan" rows="3" required
+                                placeholder="Jelaskan mengapa permohonan ditolak..."></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-danger">Tolak Sekarang</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Finalize Modal -->
-    <div class="modal fade" id="finalizeModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <form class="modal-content" action="{{ route('admin.surat-approval.finalize', $surat->id) }}" method="POST"
-                enctype="multipart/form-data">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title">Finalisasi & Upload Surat</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-2">
-                        <div class="col mb-3">
-                            <label for="nomor_surat" class="form-label">Nomor Surat Resmi</label>
-                            <input type="text" id="nomor_surat" name="nomor_surat" class="form-control"
-                                placeholder="Contoh: 123/POLSA/AK/2026" required>
-                        </div>
-                    </div>
-                    <div class="row g-2">
-                        <div class="col mb-0">
-                            <label for="file_final" class="form-label">File Surat (PDF)</label>
-                            <input type="file" id="file_final" name="file_final" class="form-control"
-                                accept="application/pdf" required>
-                            <small class="text-muted">Maksimal 2MB, format PDF.</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success">Simpan & Selesaikan</button>
                 </div>
             </form>
         </div>

@@ -405,6 +405,17 @@ Route::middleware(['auth', 'role:Wakil Direktur'])->prefix('wadir')->name('wadir
     Route::get('/monitoring', [\App\Http\Controllers\Wadir\MonitoringController::class, 'index'])->name('monitoring.index');
     Route::get('/monitoring/{id}', [\App\Http\Controllers\Wadir\MonitoringController::class, 'show'])->name('monitoring.show');
 });
+
+// --- Modul Kaprodi (Persetujuan Surat) ---
+Route::middleware(['auth', 'role:Kaprodi'])->prefix('kaprodi')->name('kaprodi.')->group(function () {
+    Route::get('/dashboard', function () {
+        return view('dashboard.kaprodi');
+    })->name('dashboard');
+
+    Route::get('/surat', [\App\Http\Controllers\Dosen\Kaprodi\SuratKaprodiController::class, 'index'])->name('surat.index');
+    Route::get('/surat/{id}', [\App\Http\Controllers\Dosen\Kaprodi\SuratKaprodiController::class, 'show'])->name('surat.show');
+    Route::post('/surat/{id}/validate', [\App\Http\Controllers\Dosen\Kaprodi\SuratKaprodiController::class, 'updateStatus'])->name('surat.validate');
+});
 // ------------------------------------------------------------------------------------------------- //
 
 

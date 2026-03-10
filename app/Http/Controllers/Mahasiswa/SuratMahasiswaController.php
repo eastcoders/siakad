@@ -255,6 +255,17 @@ class SuratMahasiswaController extends Controller
 
             DB::commit();
 
+            // Notify Kaprodi
+            $activeRiwayat = $mahasiswa->riwayatAktif;
+            $prodiId = $activeRiwayat->id_prodi ?? 'NONE';
+            $kaprodis = \App\Models\Kaprodi::with('dosen.user')->where('id_prodi', $prodiId)->get();
+
+            foreach ($kaprodis as $kaprodi) {
+                if ($kaprodi->dosen && $kaprodi->dosen->user) {
+                    $kaprodi->dosen->user->notify(new \App\Notifications\SuratPermohonanNotification($permohonan, 'pending'));
+                }
+            }
+
             Log::info("CRUD_CREATE: Permohonan Surat {$tipe} berhasil dibuat", [
                 'id' => $permohonan->id,
                 'nim' => $mahasiswa->nim,

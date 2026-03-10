@@ -8,6 +8,7 @@ use App\Models\Dosen;
 use App\Models\ProgramStudi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class KaprodiController extends Controller
 {
@@ -43,14 +44,19 @@ class KaprodiController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
+
             $kaprodi = Kaprodi::create($request->all());
 
             Log::info("CRUD_CREATE: Dosen ID {$request->dosen_id} diangkat menjadi Kaprodi di Prodi ID {$request->id_prodi}", [
                 'id' => $kaprodi->id
             ]);
 
+            DB::commit();
+
             return back()->with('success', 'Kaprodi berhasil ditunjuk.');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error("SYSTEM_ERROR: Gagal menambah Kaprodi", [
                 'message' => $e->getMessage()
             ]);
@@ -70,6 +76,8 @@ class KaprodiController extends Controller
         $oldDosenId = $kaprodi->dosen_id;
 
         try {
+            DB::beginTransaction();
+
             $kaprodi->update($request->only('dosen_id'));
 
             Log::info("CRUD_UPDATE: Perubahan Kaprodi pada Prodi {$kaprodi->id_prodi}", [
@@ -77,8 +85,11 @@ class KaprodiController extends Controller
                 'new_dosen' => $request->dosen_id
             ]);
 
+            DB::commit();
+
             return back()->with('success', 'Data Kaprodi berhasil diperbarui.');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error("SYSTEM_ERROR: Gagal mengupdate Kaprodi", [
                 'message' => $e->getMessage()
             ]);
@@ -92,13 +103,18 @@ class KaprodiController extends Controller
     public function destroy(Kaprodi $kaprodi)
     {
         try {
+            DB::beginTransaction();
+
             $prodiName = $kaprodi->prodi->nama_program_studi;
             $kaprodi->delete();
 
             Log::warning("CRUD_DELETE: Jabatan Kaprodi dihapus untuk Prodi {$prodiName}");
 
+            DB::commit();
+
             return back()->with('success', 'Jabatan Kaprodi berhasil dicabut.');
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error("SYSTEM_ERROR: Gagal menghapus Kaprodi", [
                 'message' => $e->getMessage()
             ]);

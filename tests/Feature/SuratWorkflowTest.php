@@ -1,0 +1,206 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use App\Models\Mahasiswa;
+use App\Models\Dosen;
+use App\Models\Kaprodi;
+use App\Models\ProgramStudi;
+use App\Models\Semester;
+use App\Models\RiwayatPendidikan;
+use App\Models\SuratPermohonan;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class SuratWorkflowTest extends TestCase
+{
+    use DatabaseTransactions;
+
+    protected $adminUser;
+    protected $kaprodiUser;
+    protected $mahasiswaUser;
+    protected $prodi;
+    protected $semester;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // 1. Setup Roles
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $kaprodiRole = Role::firstOrCreate(['name' => 'Kaprodi']);
+        $mahasiswaRole = Role::firstOrCreate(['name' => 'Mahasiswa']);
+        $dosenRole = Role::firstOrCreate(['name' => 'Dosen']);
+
+        // 2. Setup Prodi & Semester
+        $this->prodi = ProgramStudi::create([
+            'id_prodi' => (string) \Illuminate\Support\Str::uuid(),
+            'nama_program_studi' => 'Prodi Test ' . uniqid(),
+            'status' => 'A'
+        ]);
+
+        $this->semester = Semester::create([
+            'id_semester' => '99991',
+            'nama_semester' => 'Semester Test ' . uniqid(),
+            'id_tahun_ajaran' => '2025',
+            'a_periode_aktif' => 1
+        ]);
+
+        // 3. Setup Users
+        $this->adminUser = User::factory()->create([
+            'name' => 'Admin Test',
+            'username' => 'admin_test_' . uniqid()
+        ]);
+        $this->adminUser->assignRole($adminRole);
+
+        $nip = '12345678';
+        $this->kaprodiUser = User::factory()->create([
+            'name' => 'Kaprodi Test',
+            'username' => $nip
+        ]);
+        $this->kaprodiUser->assignRole($kaprodiRole);
+        $this->kaprodiUser->assignRole($dosenRole);
+
+        $this->mahasiswaUser = User::factory()->create([
+            'name' => 'Mahasiswa Test',
+            'username' => 'mahasiswa_test_' . uniqid()
+        ]);
+        $this->mahasiswaUser->assignRole($mahasiswaRole);
+
+        // 4. Setup Dosen & Kaprodi Record
+        $dosen = Dosen::create([
+            'user_id' => $this->kaprodiUser->id,
+            'nama' => 'Kaprodi Test',
+            'nip' => $nip,
+            'is_struktural' => true,
+            'status_sinkronisasi' => 'lokal'
+        ]);
+
+        // Ensure role is assigned to the CORRECT user if generateUserIfNotExists ran
+        // Actually, with same username it should find the existing one.
+
+        Kaprodi::create([
+            'dosen_id' => $dosen->id,
+            'id_prodi' => $this->prodi->id_prodi,
+            'sumber_data' => 'lokal'
+        ]);
+
+        // 5. Setup Mahasiswa & Riwayat
+        $mahasiswa = Mahasiswa::create([
+            'user_id' => $this->mahasiswaUser->id,
+            'nama_mahasiswa' => 'Mahasiswa Test',
+            'jenis_kelamin' => 'L',
+            'tanggal_lahir' => '2000-01-01',
+            'id_agama' => 1,
+            'status_sinkronisasi' => 'lokal'
+        ]);
+
+        RiwayatPendidikan::create([
+            'id_mahasiswa' => $mahasiswa->id,
+            'nim' => '20250001',
+            'id_prodi' => $this->prodi->id_prodi,
+            'id_riwayat_pendidikan' => (string) \Illuminate\Support\Str::uuid(),
+            'id_periode_masuk' => $this->semester->id_semester,
+            'id_jenis_daftar' => '1',
+            'tanggal_daftar' => now(),
+            'sumber_data' => 'lokal',
+            'status_sinkronisasi' => 'created_local'
+        ]);
+    }
+
+    /** @test */
+    public function test_full_hierarchical_surat_approval_workflow()
+    {
+        Storage::fake('public');
+
+        // --- PHASE 1: STUDENT SUBMISSION ---
+        $this->actingAs($this->mahasiswaUser);
+
+        $response = $this->post(route('mahasiswa.surat.store'), [
+            'tipe_surat' => 'aktif_kuliah',
+            'id_semester' => $this->semester->id_semester,
+            'keperluan' => 'BPJS Kesehatan',
+            'nama_ortu' => 'Bapak Test',
+            'pekerjaan_ortu' => 'Swasta',
+            'alamat_ortu' => 'Jl. Test No. 1'
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('surat_permohonans', [
+            'id_mahasiswa' => $this->mahasiswaUser->mahasiswa->id,
+            'tipe_surat' => 'aktif_kuliah',
+            'status' => 'pending'
+        ]);
+
+        $surat = SuratPermohonan::latest()->first();
+
+        // Verify notification for Kaprodi
+        $notifKaprodi = DB::table('notifications')
+            ->where('notifiable_id', $this->kaprodiUser->id)
+            ->where('data', 'like', '%"status":"pending"%')
+            ->first();
+        $this->assertNotNull($notifKaprodi, "Kaprodi should receive a notification");
+        $dataKaprodi = json_decode($notifKaprodi->data, true);
+        $this->assertStringContainsString('kaprodi/surat', $dataKaprodi['url'], "Kaprodi notification should point to kaprodi route");
+
+        // --- PHASE 2: KAPRODI VALIDATION ---
+        $this->kaprodiUser->refresh()->load('dosen');
+        $this->actingAs($this->kaprodiUser);
+
+        $response = $this->post(route('kaprodi.surat.validate', $surat->id), [
+            'status' => 'validasi',
+            'catatan_kaprodi' => 'Lengkap!'
+        ]);
+
+        $response->assertRedirect(route('kaprodi.surat.index'));
+        $this->assertEquals('validasi', $surat->fresh()->status);
+
+        // Verify notification for Admin
+        $notifAdmin = DB::table('notifications')
+            ->where('notifiable_id', $this->adminUser->id)
+            ->where('data', 'like', '%"status":"validasi"%')
+            ->first();
+        $this->assertNotNull($notifAdmin, "Admin should receive a notification");
+        $dataAdmin = json_decode($notifAdmin->data, true);
+        $this->assertStringContainsString('admin/surat-approval', $dataAdmin['url'], "Admin notification should point to admin route");
+
+        $this->adminUser->refresh();
+        $this->actingAs($this->adminUser);
+
+        $response = $this->post(route('admin.surat-approval.update-status', $surat->id), [
+            'status' => 'disetujui'
+        ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('disetujui', $surat->fresh()->status);
+
+        // --- PHASE 4: ADMIN FINALIZATION (UPLOAD) ---
+        $file = UploadedFile::fake()->create('surat_aktif.pdf', 500);
+
+        $response = $this->post(route('admin.surat-approval.finalize', $surat->id), [
+            'nomor_surat' => '001/TEST/2026',
+            'file_final' => $file
+        ]);
+
+        $response->assertRedirect();
+        $surat = $surat->fresh();
+        $this->assertEquals('selesai', $surat->status);
+        $this->assertEquals('001/TEST/2026', $surat->nomor_surat);
+        $this->assertNotNull($surat->file_final);
+
+        // --- PHASE 5: STUDENT VERIFICATION ---
+        $notifMhs = DB::table('notifications')
+            ->where('notifiable_id', $this->mahasiswaUser->id)
+            ->where('data', 'like', '%"status":"selesai"%')
+            ->first();
+        $this->assertNotNull($notifMhs, "Student should receive a final notification");
+        $dataMhs = json_decode($notifMhs->data, true);
+        $this->assertStringContainsString('mahasiswa/surat', $dataMhs['url'], "Student notification should point to mahasiswa route");
+    }
+}

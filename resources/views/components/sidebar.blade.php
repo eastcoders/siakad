@@ -382,6 +382,12 @@
                         <div data-i18n="Monitoring Perkuliahan">Monitoring Perkuliahan</div>
                     </a>
                 </li>
+                <li class="menu-item {{ request()->routeIs('kaprodi.surat.*') ? 'active' : '' }}">
+                    <a href="{{ route('kaprodi.surat.index') }}" class="menu-link">
+                        <i class="menu-icon tf-icons ri-mail-check-line"></i>
+                        <div data-i18n="Persetujuan Surat">Persetujuan Surat</div>
+                    </a>
+                </li>
 
 
             @endif

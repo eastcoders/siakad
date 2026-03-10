@@ -51,9 +51,31 @@ class SuratPermohonanNotification extends Notification
 
         $title = "Update Permohonan Surat";
         $message = "";
+
+        // Tentukan URL default berdasarkan peran penerima (notifiable)
+        // Admin -> admin.surat-approval.show
+        // Kaprodi -> kaprodi.surat.show
+        // Mahasiswa/Lainnya -> mahasiswa.surat.show
         $url = route('mahasiswa.surat.show', $this->surat->id);
+        if ($notifiable->hasRole('admin')) {
+            $url = route('admin.surat-approval.show', $this->surat->id);
+        } elseif ($notifiable->hasRole('Kaprodi')) {
+            $url = route('kaprodi.surat.show', $this->surat->id);
+        }
 
         switch ($this->status) {
+            case 'pending':
+                $title = "Permohonan Surat Baru";
+                $message = "Mahasiswa {$this->surat->mahasiswa->nama_mahasiswa} mengajukan surat {$tipeLabel}.";
+                // URL sudah diatur di atas, tapi case pending khusus override jika bukan Kaprodi (pengamanan tambahan)
+                if ($notifiable->hasRole('Kaprodi')) {
+                    $url = route('kaprodi.surat.show', $this->surat->id);
+                }
+                break;
+            case 'validasi':
+                $title = "Surat Divalidasi Kaprodi";
+                $message = "Permohonan surat {$tipeLabel} telah divalidasi Kaprodi dan sedang diteruskan ke Admin.";
+                break;
             case 'disetujui':
                 $title = "Permohonan Surat Disetujui";
                 $message = "Permohonan surat {$tipeLabel} Anda telah disetujui. Silakan tunggu proses finalisasi berkas.";

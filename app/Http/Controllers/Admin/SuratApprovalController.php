@@ -15,13 +15,18 @@ class SuratApprovalController extends Controller
     /**
      * Display a listing of all letter requests.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $surats = SuratPermohonan::with(['mahasiswa.user', 'semester'])
+        $status = $request->get('status', 'validasi'); // Default show validated ones
+
+        $surats = SuratPermohonan::with(['mahasiswa.user', 'mahasiswa.riwayatAktif.prodi', 'semester'])
+            ->when($status, function ($q) use ($status) {
+                return $q->where('status', $status);
+            })
             ->latest('tgl_pengajuan')
             ->get();
 
-        return view('admin.surat.index', compact('surats'));
+        return view('admin.surat.index', compact('surats', 'status'));
     }
 
     /**
