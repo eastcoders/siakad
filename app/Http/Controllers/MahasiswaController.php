@@ -184,7 +184,13 @@ class MahasiswaController extends Controller
         $count = 0;
         foreach ($mahasiswas as $mahasiswa) {
             try {
-                if ($service->generate($mahasiswa)) {
+                // Robust safety check
+                if ($mahasiswa && !$mahasiswa instanceof Mahasiswa) {
+                    $id = is_object($mahasiswa) ? ($mahasiswa->id ?? null) : $mahasiswa;
+                    $mahasiswa = $id ? Mahasiswa::find($id) : null;
+                }
+
+                if ($mahasiswa instanceof Mahasiswa && $service->generate($mahasiswa)) {
                     $count++;
                 }
             } catch (\Exception $e) {
@@ -207,7 +213,8 @@ class MahasiswaController extends Controller
                 return response()->json(['success' => false, 'message' => 'Tidak ada ID mahasiswa yang valid untuk diproses.']);
             }
 
-            $mahasiswas = Mahasiswa::whereIn('id', $ids)
+            $mahasiswas = Mahasiswa::query()
+                ->whereIn('id', $ids)
                 ->whereNull('user_id')
                 ->with('riwayatAktif')
                 ->get();
@@ -218,6 +225,17 @@ class MahasiswaController extends Controller
 
             foreach ($mahasiswas as $mhs) {
                 try {
+                    // Robust safety check: Ensure we have a Mahasiswa model instance
+                    if ($mhs && !$mhs instanceof Mahasiswa) {
+                        $id = is_object($mhs) ? ($mhs->id ?? null) : $mhs;
+                        $mhs = $id ? Mahasiswa::find($id) : null;
+                    }
+
+                    if (!$mhs instanceof Mahasiswa) {
+                        $skipped++;
+                        continue;
+                    }
+
                     $result = $service->generate($mhs);
                     if ($result) {
                         $created++;
@@ -278,31 +296,52 @@ class MahasiswaController extends Controller
 
     public function index(Request $request)
     {
-        // Default filter: tahun angkatan terakhir yang ditambahkan (kecuali user pilih filter lain atau 'all')
+        // Default filter: tahun angkatan terakhir yang ditambahkan
         $latestPeriodeMasuk = \App\Models\RiwayatPendidikan::orderBy('id_periode_masuk', 'desc')
             ->value('id_periode_masuk');
 
-        $selectedPeriode = $request->periode_masuk;
+        $latestYear = $latestPeriodeMasuk ? substr($latestPeriodeMasuk, 0, 4) : null;
+
+        $selectedPeriode = $request->periode_masuk; // Ini sekarang bisa berbentuk array
+        if ($selectedPeriode && !is_array($selectedPeriode)) {
+            $selectedPeriode = [$selectedPeriode];
+        }
         $selectedProdi = $request->prodi;
         $showAll = $request->has('all'); // ?all=1 untuk menampilkan semua
 
-        // Jika belum ada filter dari user dan bukan request "all", gunakan tahun angkatan terakhir
-        if (!$request->filled('periode_masuk') && !$showAll && $latestPeriodeMasuk) {
-            $selectedPeriode = $latestPeriodeMasuk;
+        // Jika belum ada filter dari user dan bukan request "all", gunakan tahun terakhir
+        if (!$request->filled('periode_masuk') && !$showAll && $latestYear) {
+            $selectedPeriode = [$latestYear];
         }
 
-        $query = Mahasiswa::with(['riwayatAktif.prodi', 'riwayatAktif.semester', 'agama'])
+        $activeSemesterId = getActiveSemesterId() ?: $latestPeriodeMasuk;
+
+        $query = Mahasiswa::select('mahasiswas.*')
+            ->with(['riwayatAktif.prodi', 'riwayatAktif.semester', 'agama'])
             ->addSelect([
-                'total_sks' => \App\Models\PesertaKelasKuliah::selectRaw('COALESCE(SUM(kelas_kuliah.sks_mk), 0)')
-                    ->join('kelas_kuliah', 'kelas_kuliah.id_kelas_kuliah', '=', 'peserta_kelas_kuliah.id_kelas_kuliah')
-                    ->join('riwayat_pendidikans', 'riwayat_pendidikans.id', '=', 'peserta_kelas_kuliah.riwayat_pendidikan_id')
-                    ->whereColumn('riwayat_pendidikans.id_mahasiswa', 'mahasiswas.id')
+                'total_sks' => \App\Models\PesertaKelasKuliah::selectRaw('COALESCE(SUM(sks_mk), 0)')
+                    ->fromRaw('(
+                        SELECT DISTINCT ON (rp_sub.id_mahasiswa, kk_sub.id_matkul) 
+                            kk_sub.sks_mk, rp_sub.id_mahasiswa, kk_sub.id_semester
+                        FROM peserta_kelas_kuliah pkk_sub
+                        JOIN kelas_kuliah kk_sub ON kk_sub.id_kelas_kuliah = pkk_sub.id_kelas_kuliah
+                        JOIN riwayat_pendidikans rp_sub ON rp_sub.id = pkk_sub.riwayat_pendidikan_id
+                        WHERE pkk_sub.nilai_huruf IS NOT NULL
+                        AND pkk_sub.nilai_huruf NOT IN (\'E\', \'T\')
+                        ' . (!empty($selectedPeriode) ? 'AND (' . collect($selectedPeriode)->map(fn($y) => "kk_sub.id_semester LIKE '" . (int) $y . "%'")->implode(' OR ') . ')' : '') . '
+                        ORDER BY rp_sub.id_mahasiswa, kk_sub.id_matkul, pkk_sub.nilai_indeks DESC
+                    ) as sub')
+                    ->whereColumn('sub.id_mahasiswa', 'mahasiswas.id')
             ]);
 
-        // Filter berdasarkan Tahun Angkatan / Periode Masuk
-        if ($selectedPeriode) {
+        // Filter berdasarkan Tahun Angkatan (Prefix Match pada id_periode_masuk)
+        if (!empty($selectedPeriode)) {
             $query->whereHas('riwayatAktif', function ($q) use ($selectedPeriode) {
-                $q->where('id_periode_masuk', $selectedPeriode);
+                $q->where(function ($qq) use ($selectedPeriode) {
+                    foreach ($selectedPeriode as $year) {
+                        $qq->orWhere('id_periode_masuk', 'LIKE', $year . '%');
+                    }
+                });
             });
         }
 
@@ -324,8 +363,11 @@ class MahasiswaController extends Controller
             ->orderBy('nama_mahasiswa')
             ->get();
 
-        // Data untuk dropdown filter
-        $semesters = \App\Models\Semester::orderBy('id_semester', 'desc')->get();
+        // Data untuk dropdown filter (Daftar Tahun Angkatan Unik)
+        $semesters = \App\Models\Semester::select('id_tahun_ajaran')
+            ->distinct()
+            ->orderBy('id_tahun_ajaran', 'desc')
+            ->get();
         $prodis = \App\Models\ProgramStudi::orderBy('nama_program_studi')->get();
 
         return view('admin.mahasiswa.index', compact('mahasiswa', 'semesters', 'prodis', 'selectedPeriode', 'selectedProdi', 'showAll'));

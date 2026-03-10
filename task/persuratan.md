@@ -8,3 +8,7 @@
 - [ ] Buat view cetak untuk surat permohonan pindah perguruan tinggi.
 - [ ] Buat view cetak untuk surat permohonan izin tempat PKL.
 - [ ] Buat view cetak untuk surat permohonan perolehan data PKL/TA.
+
+
+### ISSUE
+- [ ] Perbaiki logika ACC permohonan surat, dimana surat yang masuk harus meminta persetujuan terlebih dahulu di kaprodi masing masings sebelum di ACC oleh admin.

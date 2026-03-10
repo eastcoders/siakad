@@ -58,7 +58,7 @@
                         <th width="140px">Tipe Kelas</th>
                         <th>Jenis Kelamin</th>
                         <th>Agama</th>
-                        <th>Total SKS Diambil</th>
+                        <th>SKS Kumulatif</th>
                         <th>Tanggal Lahir</th>
                     </tr>
                 </thead>
@@ -159,13 +159,14 @@
                     <div class="modal-body">
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label">Tahun Angkatan / Semester Masuk</label>
-                                <select class="form-select select2-filter" name="periode_masuk"
+                                <label class="form-label">Tahun Angkatan</label>
+                                <select class="form-select select2-filter" name="periode_masuk[]" multiple
                                     data-placeholder="-- Semua Angkatan --">
                                     <option value="">-- Semua Angkatan --</option>
                                     @foreach($semesters as $smt)
-                                        <option value="{{ $smt->id_semester }}" {{ $selectedPeriode == $smt->id_semester ? 'selected' : '' }}>
-                                            {{ $smt->nama_semester }}
+                                        <option value="{{ $smt->id_tahun_ajaran }}" 
+                                            {{ is_array($selectedPeriode) && in_array($smt->id_tahun_ajaran, $selectedPeriode) ? 'selected' : '' }}>
+                                            {{ $smt->id_tahun_ajaran }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -185,7 +186,8 @@
                         </div>
                     </div>
                     <div class="modal-footer d-flex justify-content-between">
-                        <a href="{{ route('admin.mahasiswa.index', ['all' => 1]) }}" class="btn btn-outline-secondary">Tampilkan Semua</a>
+                        <a href="{{ route('admin.mahasiswa.index', ['all' => 1]) }}"
+                            class="btn btn-outline-secondary">Tampilkan Semua</a>
                         <div>
                             <button type="button" class="btn btn-outline-secondary me-2"
                                 data-bs-dismiss="modal">Batal</button>
@@ -196,20 +198,25 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Modal Progress Bar -->
-    <div class="modal fade" id="modalProgressInit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="modalProgressInit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalProgressInitTitle"><i class="ri-loader-4-line spin text-primary me-2"></i> Sinkronisasi Akun Sedang Berjalan</h5>
+                    <h5 class="modal-title" id="modalProgressInitTitle"><i
+                            class="ri-loader-4-line spin text-primary me-2"></i> Sinkronisasi Akun Sedang Berjalan</h5>
                 </div>
                 <div class="modal-body text-center">
                     <p class="mb-3 text-muted" id="progressInitText">Mengumpulkan data mahasiswa...</p>
                     <div class="progress" style="height: 25px;">
-                        <div id="progressInitBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                        <div id="progressInitBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                            role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%
+                        </div>
                     </div>
-                    <small class="text-warning mt-3 d-block"><i class="ri-error-warning-line"></i> Jangan tutup halaman ini sampai proses selesai.</small>
+                    <small class="text-warning mt-3 d-block"><i class="ri-error-warning-line"></i> Jangan tutup halaman ini
+                        sampai proses selesai.</small>
                 </div>
             </div>
         </div>
@@ -393,12 +400,16 @@
                 });
 
                 let filterBadge = '';
-                @if($selectedPeriode || $selectedProdi)
+                @if(!empty($selectedPeriode) || $selectedProdi)
                     @php
                         $filterLabel = '';
-                        if ($selectedPeriode) {
-                            $smtName = $semesters->firstWhere('id_semester', $selectedPeriode)?->nama_semester ?? $selectedPeriode;
-                            $filterLabel = $smtName;
+                        if (!empty($selectedPeriode)) {
+                            // Jika banyak, tampilkan jumlah, jika sedikit tampilkan list
+                            if (count($selectedPeriode) > 2) {
+                                $filterLabel = count($selectedPeriode) . ' Angkatan';
+                            } else {
+                                $filterLabel = implode(', ', $selectedPeriode);
+                            }
                         }
                     @endphp
                     filterBadge = '<span class="badge bg-primary ms-2 fs-6"><i class="ri-filter-fill"></i> {{ $filterLabel }}</span>';
@@ -594,33 +605,33 @@
                         }
 
                         let batchData = chunks[currentChunk];
-                        
+
                         $.ajax({
                             url: '{{ route("admin.mahasiswa.init-all-accounts") }}',
                             type: 'POST',
-                            data: { 
+                            data: {
                                 _token: '{{ csrf_token() }}',
                                 mahasiswa_ids: batchData
                             },
-                            success: function(batchRes) {
-                                if(batchRes.success) {
+                            success: function (batchRes) {
+                                if (batchRes.success) {
                                     totalCreated += batchRes.created;
                                     totalSkipped += batchRes.skipped;
                                 }
-                                
+
                                 currentChunk++;
-                                
+
                                 // Kalkulasi & Update Presentase View
                                 let processedData = Math.min((currentChunk * chunkSize), total);
                                 let percentage = Math.round((processedData / total) * 100);
-                                
+
                                 $('#progressInitBar').css('width', percentage + '%').attr('aria-valuenow', percentage).text(percentage + '%');
                                 $('#progressInitText').html(`Memproses <b>${processedData}</b> dari <b>${total}</b> mahasiswa...`);
 
                                 // Lepar antrean chunk berikutnya
                                 processNextChunk();
                             },
-                            error: function(xhr) {
+                            error: function (xhr) {
                                 let msg = 'Terjadi kesalahan memproses batch.';
                                 if (xhr.responseJSON && xhr.responseJSON.message) {
                                     msg = xhr.responseJSON.message;

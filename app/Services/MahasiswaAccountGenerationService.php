@@ -35,10 +35,8 @@ class MahasiswaAccountGenerationService
 
         DB::beginTransaction();
         try {
-            // Prioritas email asli dari profil mahasiswa, fallback ke dummy email
-            $email = !empty($mahasiswa->email)
-                ? strtolower($mahasiswa->email)
-                : strtolower($username) . '@mhs.polsa.ac.id';
+            // Selalu gunakan email institusi berbasis NIM untuk menjamin keunikan dan konsistensi
+            $email = strtolower($username) . '@mhs.polsa.ac.id';
 
             // 2. Buat User
             $user = User::firstOrCreate(
