@@ -129,6 +129,8 @@ class SuratApprovalController extends Controller
                 $templateName = 'cuti_kuliah.docx';
             } elseif ($surat->tipe_surat === 'aktif_kuliah') {
                 $templateName = 'aktif_kuliah.docx';
+            } elseif ($surat->tipe_surat === 'pindah_kelas') {
+                $templateName = 'pindah_kelas.docx';
             } else {
                 $templateName = 'surat_template.docx';
             }
@@ -205,6 +207,52 @@ class SuratApprovalController extends Controller
                     'semester' => $sms,
                     'tahun_akademik' => $tahunAkademik,
                     'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                ]);
+            } elseif ($surat->tipe_surat === 'pindah_kelas') {
+                $mhs = $surat->mahasiswa;
+                $prodi = $mhs->riwayatAktif->programStudi->nama_program_studi ?? '-';
+                $kodeProdiAlfa = $mhs->riwayatAktif->programStudi->kode_prodi_alfa ?? 'XX';
+                $tingkatSemester = $mhs->tingkat_semester;
+
+                // Pecah Semester
+                $namaSemester = $surat->semester->nama_semester ?? '';
+                $parts = explode(' ', $namaSemester);
+                $tahunAkademik = $parts[0] ?? '-';
+                $sms = $parts[1] ?? '-';
+
+                // Data Dinamis dari Pengajuan (diketahui user menginput lewat form)
+                // Key 'kelas_tujuan' adalah standar dari SuratMahasiswaController@store
+                $tipeSaatIni = collect([
+                    'A' => 'Reguler Pagi',
+                    'B' => 'Karyawan / Reguler Malam',
+                    'C' => 'Eksekutif / Shift',
+                ])->get($mhs->tipe_kelas, $mhs->tipe_kelas ?? '-');
+
+                $tipeTujuanHuman = $surat->getMeta('kelas_tujuan', '-'); // Misal: "Sore" atau "Pagi"
+                $tipeTujuan = $tipeTujuanHuman === 'Pagi' ? 'Reguler Pagi' : ($tipeTujuanHuman === 'Sore' ? 'Karyawan / Reguler Malam' : $tipeTujuanHuman);
+                $tipeTujuanAlfa = $tipeTujuanHuman === 'Pagi' ? 'A' : ($tipeTujuanHuman === 'Sore' ? 'B' : 'X');
+
+                $templateProcessor->setValues([
+                    // Data Mahasiswa
+                    'nama_mahasiswa' => $mhs->nama_mahasiswa ?? '-',
+                    'nim' => $mhs->nim ?? '-',
+                    'nama_prodi' => $prodi,
+                    'kode_prodi_alfa' => $kodeProdiAlfa,
+                    'tingkat_semester' => $tingkatSemester,
+
+                    // Data Semester Aktif
+                    'semester_genap_atau_ganjil' => $sms,
+                    'tahun_ajaran' => $tahunAkademik,
+
+                    // Data Perpindahan
+                    'tipe_kelas_saat_ini' => $tipeSaatIni,
+                    'tipe_kelas_tujuan' => $tipeTujuan,
+                    'tipe_kelas_aplfabet' => $tipeTujuanAlfa,
+
+                    // Meta Konstan/Umum
+                    'tanggal_pengajuan' => $surat->tgl_pengajuan ? \Carbon\Carbon::parse($surat->tgl_pengajuan)->translatedFormat('d F Y') : now()->translatedFormat('d F Y'),
+                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                    'nama_dosen_sbg_direktur' => '[Nama Direktur]', // Hardcoded fallback
                 ]);
             } else {
                 $templateProcessor->setValue('nomor_tiket', $surat->nomor_tiket);

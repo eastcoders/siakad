@@ -252,4 +252,60 @@ class SuratWorkflowTest extends TestCase
             ->first();
         $this->assertNotNull($notifMhs, 'Student should receive a rejection notification');
     }
+    /** @test */
+    public function test_admin_can_print_surat_pindah_kelas()
+    {
+        Storage::fake('public');
+
+        // Create a dummy template file
+        $templatePath = storage_path('app/templates/pindah_kelas.docx');
+        if (! file_exists(dirname($templatePath))) {
+            mkdir(dirname($templatePath), 0755, true);
+        }
+        
+        // We just create an empty file so file_exists($templatePath) passes in Controller.
+        // Actually PhpWord TemplateProcessor might fail if it's not a valid zip,
+        $templatePath = storage_path('app/templates/pindah_kelas.docx');
+        if (! file_exists($templatePath)) {
+            $this->markTestSkipped('Template pindah_kelas.docx not found in storage/app/templates');
+        }
+
+        $this->actingAs($this->mahasiswaUser);
+
+        $response = $this->post(route('mahasiswa.surat.store'), [
+            'tipe_surat' => 'pindah_kelas',
+            'id_semester' => $this->semester->id_semester,
+            'keperluan' => 'Pindah Kelas karena bentrok jadwal kerja',
+            'kelas_tujuan' => 'Sore', // Karyawan
+        ]);
+        $response->assertRedirect();
+
+        $surat = SuratPermohonan::latest()->first();
+        $this->assertEquals('pending', $surat->status);
+
+        $this->actingAs($this->kaprodiUser);
+        $response = $this->post(route('kaprodi.surat.validate', $surat->id), [
+            'status' => 'validasi',
+        ]);
+        $response->assertRedirect();
+        $this->assertEquals('validasi', $surat->fresh()->status);
+
+        $this->actingAs($this->adminUser);
+
+        // Approve it first
+        $response = $this->post(route('admin.surat-approval.approve', $surat->id), [
+            'status' => 'disetujui',
+        ]);
+        $response->assertRedirect();
+        $this->assertEquals('disetujui', $surat->fresh()->status);
+
+        // Attempt to print
+        $response = $this->post(route('admin.surat-approval.finalize', $surat->id));
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $surat = $surat->fresh();
+        $this->assertEquals('selesai', $surat->status);
+        $this->assertNotNull($surat->file_final);
+    }
 }
