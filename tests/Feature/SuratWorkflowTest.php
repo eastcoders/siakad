@@ -2,18 +2,17 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Mahasiswa;
 use App\Models\Dosen;
 use App\Models\Kaprodi;
+use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
-use App\Models\Semester;
 use App\Models\RiwayatPendidikan;
+use App\Models\Semester;
 use App\Models\SuratPermohonan;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -22,9 +21,13 @@ class SuratWorkflowTest extends TestCase
     use DatabaseTransactions;
 
     protected $adminUser;
+
     protected $kaprodiUser;
+
     protected $mahasiswaUser;
+
     protected $prodi;
+
     protected $semester;
 
     protected function setUp(): void
@@ -40,35 +43,35 @@ class SuratWorkflowTest extends TestCase
         // 2. Setup Prodi & Semester
         $this->prodi = ProgramStudi::create([
             'id_prodi' => (string) \Illuminate\Support\Str::uuid(),
-            'nama_program_studi' => 'Prodi Test ' . uniqid(),
-            'status' => 'A'
+            'nama_program_studi' => 'Prodi Test '.uniqid(),
+            'status' => 'A',
         ]);
 
         $this->semester = Semester::create([
             'id_semester' => '99991',
-            'nama_semester' => 'Semester Test ' . uniqid(),
+            'nama_semester' => 'Semester Test '.uniqid(),
             'id_tahun_ajaran' => '2025',
-            'a_periode_aktif' => 1
+            'a_periode_aktif' => 1,
         ]);
 
         // 3. Setup Users
         $this->adminUser = User::factory()->create([
             'name' => 'Admin Test',
-            'username' => 'admin_test_' . uniqid()
+            'username' => 'admin_test_'.uniqid(),
         ]);
         $this->adminUser->assignRole($adminRole);
 
         $nip = '12345678';
         $this->kaprodiUser = User::factory()->create([
             'name' => 'Kaprodi Test',
-            'username' => $nip
+            'username' => $nip,
         ]);
         $this->kaprodiUser->assignRole($kaprodiRole);
         $this->kaprodiUser->assignRole($dosenRole);
 
         $this->mahasiswaUser = User::factory()->create([
             'name' => 'Mahasiswa Test',
-            'username' => 'mahasiswa_test_' . uniqid()
+            'username' => 'mahasiswa_test_'.uniqid(),
         ]);
         $this->mahasiswaUser->assignRole($mahasiswaRole);
 
@@ -78,7 +81,7 @@ class SuratWorkflowTest extends TestCase
             'nama' => 'Kaprodi Test',
             'nip' => $nip,
             'is_struktural' => true,
-            'status_sinkronisasi' => 'lokal'
+            'status_sinkronisasi' => 'lokal',
         ]);
 
         // Ensure role is assigned to the CORRECT user if generateUserIfNotExists ran
@@ -87,7 +90,7 @@ class SuratWorkflowTest extends TestCase
         Kaprodi::create([
             'dosen_id' => $dosen->id,
             'id_prodi' => $this->prodi->id_prodi,
-            'sumber_data' => 'lokal'
+            'sumber_data' => 'lokal',
         ]);
 
         // 5. Setup Mahasiswa & Riwayat
@@ -97,7 +100,7 @@ class SuratWorkflowTest extends TestCase
             'jenis_kelamin' => 'L',
             'tanggal_lahir' => '2000-01-01',
             'id_agama' => 1,
-            'status_sinkronisasi' => 'lokal'
+            'status_sinkronisasi' => 'lokal',
         ]);
 
         RiwayatPendidikan::create([
@@ -109,7 +112,7 @@ class SuratWorkflowTest extends TestCase
             'id_jenis_daftar' => '1',
             'tanggal_daftar' => now(),
             'sumber_data' => 'lokal',
-            'status_sinkronisasi' => 'created_local'
+            'status_sinkronisasi' => 'created_local',
         ]);
     }
 
@@ -127,7 +130,7 @@ class SuratWorkflowTest extends TestCase
             'keperluan' => 'BPJS Kesehatan',
             'nama_ortu' => 'Bapak Test',
             'pekerjaan_ortu' => 'Swasta',
-            'alamat_ortu' => 'Jl. Test No. 1'
+            'alamat_ortu' => 'Jl. Test No. 1',
         ]);
 
         $response->assertRedirect();
@@ -135,7 +138,7 @@ class SuratWorkflowTest extends TestCase
         $this->assertDatabaseHas('surat_permohonans', [
             'id_mahasiswa' => $this->mahasiswaUser->mahasiswa->id,
             'tipe_surat' => 'aktif_kuliah',
-            'status' => 'pending'
+            'status' => 'pending',
         ]);
 
         $surat = SuratPermohonan::latest()->first();
@@ -145,9 +148,9 @@ class SuratWorkflowTest extends TestCase
             ->where('notifiable_id', $this->kaprodiUser->id)
             ->where('data', 'like', '%"status":"pending"%')
             ->first();
-        $this->assertNotNull($notifKaprodi, "Kaprodi should receive a notification");
+        $this->assertNotNull($notifKaprodi, 'Kaprodi should receive a notification');
         $dataKaprodi = json_decode($notifKaprodi->data, true);
-        $this->assertStringContainsString('kaprodi/surat', $dataKaprodi['url'], "Kaprodi notification should point to kaprodi route");
+        $this->assertStringContainsString('kaprodi/surat', $dataKaprodi['url'], 'Kaprodi notification should point to kaprodi route');
 
         // --- PHASE 2: KAPRODI VALIDATION ---
         $this->kaprodiUser->refresh()->load('dosen');
@@ -155,7 +158,7 @@ class SuratWorkflowTest extends TestCase
 
         $response = $this->post(route('kaprodi.surat.validate', $surat->id), [
             'status' => 'validasi',
-            'catatan_kaprodi' => 'Lengkap!'
+            'catatan_kaprodi' => 'Lengkap!',
         ]);
 
         $response->assertRedirect(route('kaprodi.surat.index'));
@@ -166,41 +169,87 @@ class SuratWorkflowTest extends TestCase
             ->where('notifiable_id', $this->adminUser->id)
             ->where('data', 'like', '%"status":"validasi"%')
             ->first();
-        $this->assertNotNull($notifAdmin, "Admin should receive a notification");
+        $this->assertNotNull($notifAdmin, 'Admin should receive a notification');
         $dataAdmin = json_decode($notifAdmin->data, true);
-        $this->assertStringContainsString('admin/surat-approval', $dataAdmin['url'], "Admin notification should point to admin route");
+        $this->assertStringContainsString('admin/surat-approval', $dataAdmin['url'], 'Admin notification should point to admin route');
 
         $this->adminUser->refresh();
         $this->actingAs($this->adminUser);
 
-        $response = $this->post(route('admin.surat-approval.update-status', $surat->id), [
-            'status' => 'disetujui'
+        // --- PHASE 3: ADMIN APPROVAL (NEW) ---
+        $response = $this->post(route('admin.surat-approval.approve', $surat->id), [
+            'status' => 'disetujui',
         ]);
 
         $response->assertRedirect();
         $this->assertEquals('disetujui', $surat->fresh()->status);
 
-        // --- PHASE 4: ADMIN FINALIZATION (UPLOAD) ---
-        $file = UploadedFile::fake()->create('surat_aktif.pdf', 500);
-
-        $response = $this->post(route('admin.surat-approval.finalize', $surat->id), [
-            'nomor_surat' => '001/TEST/2026',
-            'file_final' => $file
-        ]);
+        // --- PHASE 4: ADMIN PRINT & FINALIZATION (DOCX GENERATION) ---
+        $response = $this->post(route('admin.surat-approval.finalize', $surat->id));
 
         $response->assertRedirect();
+
         $surat = $surat->fresh();
-        $this->assertEquals('selesai', $surat->status);
-        $this->assertEquals('001/TEST/2026', $surat->nomor_surat);
-        $this->assertNotNull($surat->file_final);
+        $this->assertEquals('selesai', $surat->status, "Status should be 'selesai' after admin prints");
+        $this->assertNotNull($surat->file_final, 'Final file path should be saved in DB');
+        $this->assertStringContainsString('.docx', $surat->file_final, 'Final file should be a DOCX');
+        $this->assertFileExists(storage_path('app/public/'.$surat->file_final), 'DOCX file should actually exist in storage');
 
         // --- PHASE 5: STUDENT VERIFICATION ---
         $notifMhs = DB::table('notifications')
             ->where('notifiable_id', $this->mahasiswaUser->id)
             ->where('data', 'like', '%"status":"selesai"%')
             ->first();
-        $this->assertNotNull($notifMhs, "Student should receive a final notification");
+        $this->assertNotNull($notifMhs, 'Student should receive a final notification');
         $dataMhs = json_decode($notifMhs->data, true);
-        $this->assertStringContainsString('mahasiswa/surat', $dataMhs['url'], "Student notification should point to mahasiswa route");
+        $this->assertStringContainsString('mahasiswa/surat', $dataMhs['url'], 'Student notification should point to mahasiswa route');
+    }
+
+    /** @test */
+    public function test_admin_can_reject_surat()
+    {
+        $this->actingAs($this->mahasiswaUser);
+
+        $response = $this->post(route('mahasiswa.surat.store'), [
+            'tipe_surat' => 'aktif_kuliah',
+            'id_semester' => $this->semester->id_semester,
+            'keperluan' => 'BPJS Kesehatan',
+            'nama_ortu' => 'Bapak Test Reject',
+            'pekerjaan_ortu' => 'Swasta',
+            'alamat_ortu' => 'Jl. Test Reject No. 2',
+        ]);
+
+        $surat = SuratPermohonan::latest()->first();
+
+        $this->actingAs($this->kaprodiUser);
+        $this->post(route('kaprodi.surat.validate', $surat->id), [
+            'status' => 'validasi',
+        ]);
+
+        $this->actingAs($this->adminUser);
+
+        // Attempt to print without approval should fail
+        $response = $this->post(route('admin.surat-approval.finalize', $surat->id));
+        $response->assertSessionHas('error');
+        $this->assertEquals('validasi', $surat->fresh()->status);
+
+        // Reject the surat
+        $response = $this->post(route('admin.surat-approval.approve', $surat->id), [
+            'status' => 'ditolak',
+            'catatan' => 'Format surat tidak sesuai.',
+        ]);
+
+        $response->assertRedirect();
+
+        $surat = $surat->fresh();
+        $this->assertEquals('ditolak', $surat->status);
+        $this->assertEquals('Format surat tidak sesuai.', $surat->catatan_admin);
+
+        // Ensure student gets rejection notification
+        $notifMhs = DB::table('notifications')
+            ->where('notifiable_id', $this->mahasiswaUser->id)
+            ->where('data', 'like', '%"status":"ditolak"%')
+            ->first();
+        $this->assertNotNull($notifMhs, 'Student should receive a rejection notification');
     }
 }

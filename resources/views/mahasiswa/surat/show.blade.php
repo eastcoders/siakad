@@ -70,10 +70,10 @@
 
                         @if($surat->status == 'selesai' && $surat->file_final)
                             <hr>
-                            <a href="{{ route('mahasiswa.surat.download', $surat->id) }}" target="_blank"
-                                class="btn btn-success w-100">
-                                <i class="ri-download-2-line me-1"></i> Unduh Surat Final
-                            </a>
+                            <div class="alert alert-success mt-3 mb-0">
+                                <i class="ri-checkbox-circle-fill me-2"></i> Dokumen surat Anda telah dicetak. Silahkan menuju
+                                <strong>Ruang Akademik</strong> untuk mengambil surat fisik/cetaknya.
+                            </div>
                         @endif
                     </div>
                 </div>

@@ -37,7 +37,6 @@ class RiwayatPendidikan extends Model
         return $value ?? $this->last_sync;
     }
 
-
     public function mahasiswa()
     {
         return $this->belongsTo(Mahasiswa::class, 'id_mahasiswa', 'id');
@@ -97,5 +96,42 @@ class RiwayatPendidikan extends Model
     public function pesertaKelasKuliahs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(PesertaKelasKuliah::class, 'riwayat_pendidikan_id');
+    }
+
+    /**
+     * Accessor: Hitung tingkat semester masa studi secara teoritis.
+     * Menggunakan selisih waktu Periode Masuk vs Periode Aktif Akademik.
+     * Cap maksimal 14 semester.
+     */
+    public function getTingkatSemesterAttribute()
+    {
+        $id_periode_masuk = $this->id_periode_masuk;
+        $id_semester_aktif = getActiveSemesterId();
+
+        if (! $id_periode_masuk || ! $id_semester_aktif) {
+            return 1;
+        }
+
+        $tahunMasuk = (int) substr($id_periode_masuk, 0, 4);
+        $sesiMasuk = (int) substr($id_periode_masuk, 4, 1);
+
+        $tahunAktif = (int) substr($id_semester_aktif, 0, 4);
+        $sesiAktif = (int) substr($id_semester_aktif, 4, 1);
+
+        // Abaikan semester pendek (3) untuk kalkulasi tingkat (Sesi Pendek jalan di genap)
+        $sesiMasuk = $sesiMasuk === 3 ? 2 : $sesiMasuk;
+        $sesiAktif = $sesiAktif === 3 ? 2 : $sesiAktif;
+
+        $selisihTahun = $tahunAktif - $tahunMasuk;
+        $selisihSesi = $sesiAktif - $sesiMasuk;
+
+        $semester = ($selisihTahun * 2) + $selisihSesi + 1;
+
+        // Antisipasi mahasiswa DO otomatis/masa studi habis (Max S1: 14 smt)
+        if ($semester > 14) {
+            $semester = 14;
+        }
+
+        return max(1, $semester); // Minimal tingkat 1
     }
 }

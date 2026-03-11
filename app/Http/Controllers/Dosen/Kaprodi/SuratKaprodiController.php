@@ -3,24 +3,24 @@
 namespace App\Http\Controllers\Dosen\Kaprodi;
 
 use App\Http\Controllers\Controller;
-use App\Models\SuratPermohonan;
 use App\Models\Kaprodi;
+use App\Models\SuratPermohonan;
+use App\Notifications\SuratPermohonanNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Notifications\SuratPermohonanNotification;
 
 class SuratKaprodiController extends Controller
 {
     /**
      * Display a listing of personal letter requests for the Kaprodi's Prodi.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         $dosen = $user->dosen;
 
-        if (!$dosen) {
+        if (! $dosen) {
             abort(403, 'Anda tidak terdaftar sebagai Dosen.');
         }
 
@@ -31,15 +31,20 @@ class SuratKaprodiController extends Controller
             abort(403, 'Anda tidak terdaftar sebagai Kaprodi di Program Studi manapun.');
         }
 
+        $id_semester = $request->get('id_semester');
+
         $surats = SuratPermohonan::with(['mahasiswa.riwayatAktif', 'semester'])
             ->whereHas('mahasiswa.riwayatAktif', function ($q) use ($prodiIds) {
                 $q->whereIn('id_prodi', $prodiIds);
             })
-            ->whereIn('status', ['pending', 'validasi', 'ditolak'])
+            ->whereIn('status', ['pending', 'validasi', 'ditolak', 'disetujui', 'selesai'])
+            ->when($id_semester, function ($q) use ($id_semester) {
+                return $q->where('id_semester', $id_semester);
+            })
             ->latest('tgl_pengajuan')
             ->get();
 
-        return view('dosen.kaprodi.surat.index', compact('surats'));
+        return view('dosen.kaprodi.surat.index', compact('surats', 'id_semester'));
     }
 
     /**
@@ -77,7 +82,7 @@ class SuratKaprodiController extends Controller
             $user = auth()->user();
             $dosen = $user->dosen;
 
-            if (!$dosen) {
+            if (! $dosen) {
                 throw new \Exception('Akun Anda tidak memiliki data Dosen.');
             }
 
@@ -110,20 +115,21 @@ class SuratKaprodiController extends Controller
 
             DB::commit();
 
-            Log::info("CRUD_UPDATE: [SuratPermohonan] divalidasi Kaprodi", [
+            Log::info('CRUD_UPDATE: [SuratPermohonan] divalidasi Kaprodi', [
                 'id' => $id,
                 'old_status' => $oldStatus,
                 'new_status' => $request->status,
-                'kaprodi_id' => $user->id
+                'kaprodi_id' => $user->id,
             ]);
 
             return redirect()->route('kaprodi.surat.index')->with('success', 'Status permohonan berhasil diperbarui.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("SYSTEM_ERROR: Gagal memvalidasi surat oleh Kaprodi", [
-                'message' => $e->getMessage()
+            Log::error('SYSTEM_ERROR: Gagal memvalidasi surat oleh Kaprodi', [
+                'message' => $e->getMessage(),
             ]);
+
             return back()->with('error', 'Terjadi kesalahan sistem.');
         }
     }

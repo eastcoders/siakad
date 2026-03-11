@@ -105,6 +105,14 @@ class Dosen extends Model
     }
 
     /**
+     * Relasi ke Jabatan Kaprodi.
+     */
+    public function kaprodi(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Kaprodi::class, 'dosen_id');
+    }
+
+    /**
      * Relasi ke Pembimbing Akademik (Bridge).
      */
     public function pembimbingAkademik(): HasMany
@@ -164,8 +172,9 @@ class Dosen extends Model
         }
 
         // Selain Admin, tampilkan alias jika tidak kosong
-        return !empty($namaAlias) ? $namaAlias : $namaAsli;
+        return ! empty($namaAlias) ? $namaAlias : $namaAsli;
     }
+
     /**
      * Accessor untuk nama tampilan dosen khusus di halaman Admin.
      * Format: Nama Asli (Nama Alias) jika ada alias, atau Nama Asli jika tidak ada.
@@ -175,7 +184,7 @@ class Dosen extends Model
         $namaAsli = $this->nama;
         $namaAlias = $this->nama_alias;
 
-        if (!empty($namaAlias)) {
+        if (! empty($namaAlias)) {
             return "{$namaAsli} ({$namaAlias})";
         }
 
@@ -195,7 +204,7 @@ class Dosen extends Model
 
         // 2. Tentukan Login ID (Username/Password Default)
         $loginId = $this->nidn ?? $this->nip ?? strtolower(Str::random(10));
-        $email = $this->email ?? ($loginId . '@polsa.ac.id');
+        $email = $this->email ?? ($loginId.'@polsa.ac.id');
 
         // 3. Cek eksistensi User berdasarkan kredensial yang mirip di database
         $user = User::where('username', $loginId)
@@ -203,7 +212,7 @@ class Dosen extends Model
             ->first();
 
         // 4. Jika tetap tidak ada, Buat User Baru
-        if (!$user) {
+        if (! $user) {
             $user = User::create([
                 'name' => $this->nama,
                 'username' => $loginId,

@@ -97,32 +97,48 @@
                         <hr>
 
                         <!-- Status Update Actions -->
-                        @if(in_array($surat->status, ['pending', 'validasi']))
+                        @if($surat->status == 'validasi')
                             <div class="mt-4">
-                                <h6 class="mb-3">Update Status</h6>
+                                <h6 class="mb-3">Aksi Admin</h6>
                                 <div class="d-flex flex-column gap-2">
-                                    <form action="{{ route('admin.surat-approval.update-status', $surat->id) }}" method="POST">
+                                    <form action="{{ route('admin.surat-approval.approve', $surat->id) }}" method="POST">
                                         @csrf
                                         <input type="hidden" name="status" value="disetujui">
-                                        <button type="submit" class="btn btn-primary w-100">
-                                            <i class="ri-thumb-up-line me-1"></i> Setujui Permohonan
+                                        <button type="submit" class="btn btn-success w-100">
+                                            <i class="ri-check-line me-1"></i> Setujui Permohonan
                                         </button>
                                     </form>
-
-                                    <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal"
-                                        data-bs-target="#rejectModal">
-                                        <i class="ri-error-warning-line me-1"></i> Tolak Permohonan
+                                    <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                                        <i class="ri-close-line me-1"></i> Tolak Permohonan
                                     </button>
                                 </div>
                             </div>
-                        @endif
-
-                        @if($surat->status == 'disetujui')
+                        @elseif($surat->status == 'disetujui')
                             <div class="mt-4">
-                                <button type="button" class="btn btn-success w-100" data-bs-toggle="modal"
-                                    data-bs-target="#finalizeModal">
-                                    <i class="ri-upload-cloud-2-line me-1"></i> Finalisasi & Upload Surat
-                                </button>
+                                <h6 class="mb-3">Aksi Admin</h6>
+                                <div class="d-flex flex-column gap-2">
+                                    <form action="{{ route('admin.surat-approval.finalize', $surat->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="ri-printer-line me-1"></i> Cetak Dokumen (DOCX) & Beritahu Mahasiswa
+                                        </button>
+                                    </form>
+                                </div>
+                                <div class="alert alert-info mt-3 mb-0 small">
+                                    <i class="ri-information-line me-1"></i> Setelah dicetak, mahasiswa akan diberitahu untuk mengambil surat di Ruang Akademik.
+                                </div>
+                            </div>
+                        @elseif($surat->status == 'pending')
+                            <div class="mt-4">
+                                <div class="alert alert-secondary mb-0">
+                                    <i class="ri-information-line me-1"></i> Menunggu validasi dari Kepala Program Studi.
+                                </div>
+                            </div>
+                        @elseif($surat->status == 'selesai')
+                            <div class="mt-4">
+                                <div class="alert alert-success mb-0">
+                                    <i class="ri-checkbox-circle-fill me-1"></i> Surat telah dicetak dan mahasiswa telah diberitahu.
+                                </div>
                             </div>
                         @endif
                     </div>
@@ -303,9 +319,9 @@
                                 <div class="col-sm-4 fw-bold">Tanggal Selesai:</div>
                                 <div class="col-sm-8 mb-2">{{ $surat->tgl_selesai->format('d/m/Y') }}</div>
                                 <div class="col-sm-12 mt-2">
-                                    <a href="{{ route('admin.surat-approval.download', $surat->id) }}" target="_blank"
+                                    <a href="{{ asset('storage/' . $surat->file_final) }}" target="_blank"
                                         class="btn btn-outline-success">
-                                        <i class="ri-download-line me-1"></i> Unduh/Lihat Surat
+                                        <i class="ri-download-line me-1"></i> Unduh Dokumen (DOCX)
                                     </a>
                                 </div>
                             </div>
@@ -326,64 +342,31 @@
 
     <!-- Reject Modal -->
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <form class="modal-content" action="{{ route('admin.surat-approval.update-status', $surat->id) }}"
-                method="POST">
-                @csrf
-                <input type="hidden" name="status" value="ditolak">
-                <div class="modal-header">
-                    <h5 class="modal-title">Tolak Permohonan</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col mb-3">
-                            <label for="catatan_admin" class="form-label">Alasan Penolakan</label>
-                            <textarea class="form-control" id="catatan_admin" name="catatan_admin" rows="3" required
-                                placeholder="Jelaskan mengapa permohonan ditolak (contoh: berkas tidak lengkap)"></textarea>
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <form action="{{ route('admin.surat-approval.approve', $surat->id) }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="status" value="ditolak">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="rejectModalLabel">Tolak Permohonan Surat</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="ri-alert-line me-1"></i> Apakah Anda yakin ingin menolak permohonan ini? Mahasiswa akan menerima notifikasi penolakan.
+                        </div>
+                        <div class="mb-3">
+                            <label for="catatan" class="form-label">Catatan Penolakan <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="catatan" name="catatan" rows="3" required placeholder="Berikan alasan mengapa permohonan ini ditolak..."></textarea>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-danger">Tolak Sekarang</button>
-                </div>
-            </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger">Tolak Permohonan</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-
-    <!-- Finalize Modal -->
-    <div class="modal fade" id="finalizeModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <form class="modal-content" action="{{ route('admin.surat-approval.finalize', $surat->id) }}" method="POST"
-                enctype="multipart/form-data">
-                @csrf
-                <div class="modal-header">
-                    <h5 class="modal-title">Finalisasi & Upload Surat</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-2">
-                        <div class="col mb-3">
-                            <label for="nomor_surat" class="form-label">Nomor Surat Resmi</label>
-                            <input type="text" id="nomor_surat" name="nomor_surat" class="form-control"
-                                placeholder="Contoh: 123/POLSA/AK/2026" required>
-                        </div>
-                    </div>
-                    <div class="row g-2">
-                        <div class="col mb-0">
-                            <label for="file_final" class="form-label">File Surat (PDF)</label>
-                            <input type="file" id="file_final" name="file_final" class="form-control"
-                                accept="application/pdf" required>
-                            <small class="text-muted">Maksimal 2MB, format PDF.</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success">Simpan & Selesaikan</button>
-                </div>
-            </form>
-        </div>
     </div>
 @endsection

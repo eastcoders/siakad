@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\DosenController;
 use App\Http\Controllers\DosenPengajarKelasController;
+use App\Http\Controllers\JadwalGlobalController;
 use App\Http\Controllers\KurikulumController;
 use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\MataKuliahController;
 use App\Http\Controllers\RiwayatPendidikanMahasiswaController;
-use App\Http\Controllers\JadwalGlobalController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -16,7 +16,7 @@ Route::get('/', function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
         // Init active role if not set
-        if (!session()->has('active_role') && auth()->user()->roles->count() > 0) {
+        if (! session()->has('active_role') && auth()->user()->roles->count() > 0) {
             session(['active_role' => auth()->user()->roles->first()->name]);
         }
 
@@ -142,9 +142,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::prefix('surat-approval')->name('surat-approval.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'index'])->name('index');
         Route::get('/{id}', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'show'])->name('show');
-        Route::post('/{id}/status', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'updateStatus'])->name('update-status');
-        Route::post('/{id}/finalize', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'finalize'])->name('finalize');
-        Route::get('/{id}/download', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'download'])->name('download');
+        Route::post('/{id}/approve', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'approve'])->name('approve');
+        Route::post('/{id}/finalize', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'printAndFinalize'])->name('finalize');
     });
 
     // --- Modul Kuesioner BPMI (Ditunda Ekstrak di Akhir File) ---
@@ -278,11 +277,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Pengumuman
     Route::resource('pengumuman', \App\Http\Controllers\Admin\PengumumanController::class)
         ->except(['create', 'show', 'edit'])->names([
-                'index' => 'admin.pengumuman.index',
-                'store' => 'admin.pengumuman.store',
-                'update' => 'admin.pengumuman.update',
-                'destroy' => 'admin.pengumuman.destroy',
-            ]);
+            'index' => 'admin.pengumuman.index',
+            'store' => 'admin.pengumuman.store',
+            'update' => 'admin.pengumuman.update',
+            'destroy' => 'admin.pengumuman.destroy',
+        ]);
 });
 
 // Global Notifications (All Authenticated Users)
@@ -331,7 +330,6 @@ Route::middleware(['auth', 'role:Mahasiswa'])->prefix('mahasiswa')->name('mahasi
         'store' => 'surat.store',
         'show' => 'surat.show',
     ]);
-    Route::get('surat/{id}/download', [\App\Http\Controllers\Mahasiswa\SuratMahasiswaController::class, 'download'])->name('surat.download');
     Route::get('surat/api/search-pt', [\App\Http\Controllers\Mahasiswa\SuratMahasiswaController::class, 'searchPT'])->name('surat.search-pt');
     Route::get('surat/api/search-mahasiswa', [\App\Http\Controllers\Mahasiswa\SuratMahasiswaController::class, 'searchMahasiswa'])->name('surat.search-mahasiswa');
 });
@@ -372,7 +370,6 @@ Route::middleware(['auth', 'role:Dosen'])->prefix('dosen')->name('dosen.')->grou
         Route::post('/ajax-convert', [\App\Http\Controllers\Dosen\InputNilaiController::class, 'convert'])->name('ajax-convert');
     });
 });
-
 
 // ------------------------------------------------------------------------------------------------- //
 // --- Modul Kuesioner (Hak Akses Bersama: Administrator dan Tim Penjamin Mutu Internal / BPMI) --- //
@@ -418,5 +415,4 @@ Route::middleware(['auth', 'role:Kaprodi'])->prefix('kaprodi')->name('kaprodi.')
 });
 // ------------------------------------------------------------------------------------------------- //
 
-
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

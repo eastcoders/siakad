@@ -3,31 +3,35 @@
 namespace App\Http\Controllers\Mahasiswa;
 
 use App\Http\Controllers\Controller;
-use App\Models\SuratPermohonan;
-use App\Models\SuratPermohonanDetail;
-use App\Models\SuratPermohonanAnggota;
 use App\Models\Mahasiswa;
+use App\Models\ProfilPerguruanTinggi;
+use App\Models\RefPerguruanTinggi;
+use App\Models\SuratPermohonan;
+use App\Models\SuratPermohonanAnggota;
+use App\Models\SuratPermohonanDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
-use App\Models\RefPerguruanTinggi;
-use App\Models\ProfilPerguruanTinggi;
 
 class SuratMahasiswaController extends Controller
 {
     /**
      * Display a listing of personal letter requests.
      */
-    public function index()
+    public function index(Request $request)
     {
         $mahasiswa = auth()->user()->mahasiswa;
+        $id_semester = $request->get('id_semester');
+
         $surats = SuratPermohonan::with('semester')
             ->where('id_mahasiswa', $mahasiswa->id)
+            ->when($id_semester, function ($q) use ($id_semester) {
+                return $q->where('id_semester', $id_semester);
+            })
             ->latest('tgl_pengajuan')
             ->get();
 
-        return view('mahasiswa.surat.index', compact('surats'));
+        return view('mahasiswa.surat.index', compact('surats', 'id_semester'));
     }
 
     /**
@@ -132,8 +136,8 @@ class SuratMahasiswaController extends Controller
                         });
                     })->pluck('nama_mahasiswa')->toArray();
 
-                if (!empty($alreadyCoveredPartners)) {
-                    return back()->withInput()->with('error', 'Mahasiswa berikut sudah terdaftar di permohonan PKL lain: ' . implode(', ', $alreadyCoveredPartners));
+                if (! empty($alreadyCoveredPartners)) {
+                    return back()->withInput()->with('error', 'Mahasiswa berikut sudah terdaftar di permohonan PKL lain: '.implode(', ', $alreadyCoveredPartners));
                 }
             }
         }
@@ -145,7 +149,7 @@ class SuratMahasiswaController extends Controller
                 'id_mahasiswa' => $mahasiswa->id,
                 'id_semester' => $validated['id_semester'],
                 'tipe_surat' => $tipe,
-                'nomor_tiket' => 'SR-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2))),
+                'nomor_tiket' => 'SR-'.date('Ymd').'-'.strtoupper(bin2hex(random_bytes(2))),
                 'status' => 'pending',
                 'alasan' => $validated['alasan'] ?? null,
                 'keperluan' => $validated['keperluan'] ?? null,
@@ -276,7 +280,7 @@ class SuratMahasiswaController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("SYSTEM_ERROR: Gagal membuat permohonan surat", [
+            Log::error('SYSTEM_ERROR: Gagal membuat permohonan surat', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -294,24 +298,6 @@ class SuratMahasiswaController extends Controller
         $surat = SuratPermohonan::with(['details', 'semester', 'anggotas.mahasiswa'])->where('id_mahasiswa', $mahasiswa->id)->findOrFail($id);
 
         return view('mahasiswa.surat.show', compact('surat'));
-    }
-
-    /**
-     * Download the official signed PDF.
-     */
-    public function download($id)
-    {
-        $mahasiswa = auth()->user()->mahasiswa;
-        $surat = SuratPermohonan::where('id_mahasiswa', $mahasiswa->id)->findOrFail($id);
-
-        if (!$surat->file_final || !Storage::disk('public')->exists($surat->file_final)) {
-            abort(404, 'File tidak ditemukan.');
-        }
-
-        return response()->download(
-            storage_path('app/public/' . $surat->file_final),
-            'Surat_' . str_replace('/', '_', $surat->nomor_surat) . '.pdf'
-        );
     }
 
     /**
@@ -333,10 +319,11 @@ class SuratMahasiswaController extends Controller
         return response()->json($ptList->map(function ($pt) {
             return [
                 'id' => $pt->id,
-                'text' => $pt->nama_perguruan_tinggi
+                'text' => $pt->nama_perguruan_tinggi,
             ];
         }));
     }
+
     public function searchMahasiswa(Request $request)
     {
         $search = $request->get('q');
@@ -355,7 +342,7 @@ class SuratMahasiswaController extends Controller
         return response()->json($mahasiswaList->map(function ($m) {
             return [
                 'id' => $m->id,
-                'text' => $m->nama_mahasiswa . ' (' . ($m->nim ?? 'NIM Tdk Ada') . ')'
+                'text' => $m->nama_mahasiswa.' ('.($m->nim ?? 'NIM Tdk Ada').')',
             ];
         }));
     }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Mahasiswa extends Model
 {
     protected $table = 'mahasiswas';
+
     protected $fillable = [
         'id_mahasiswa',
         'id_feeder',
@@ -37,6 +38,8 @@ class Mahasiswa extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
+
+    protected $appends = ['tingkat_semester'];
 
     protected $casts = [
         'tanggal_lahir' => 'date',
@@ -135,8 +138,9 @@ class Mahasiswa extends Model
         $activeSemesterId = getActiveSemesterId();
         $idProdi = $this->riwayatAktif?->id_prodi;
 
-        if (!$idProdi || !$activeSemesterId)
+        if (! $idProdi || ! $activeSemesterId) {
             return null;
+        }
 
         $pa = PembimbingAkademik::where('id_prodi', $idProdi)
             ->where('id_semester', $activeSemesterId)
@@ -153,5 +157,13 @@ class Mahasiswa extends Model
     public function suratAnggota()
     {
         return $this->hasMany(SuratPermohonanAnggota::class, 'id_mahasiswa', 'id');
+    }
+
+    /**
+     * Accessor: Dapatkan tingkat semester dari Riwayat Aktif Mahasiswa.
+     */
+    public function getTingkatSemesterAttribute()
+    {
+        return $this->riwayatAktif?->tingkat_semester ?? 1;
     }
 }

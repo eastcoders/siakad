@@ -10,6 +10,7 @@ class SuratPermohonanNotification extends Notification
     use Queueable;
 
     protected $surat;
+
     protected $status;
 
     /**
@@ -49,8 +50,8 @@ class SuratPermohonanNotification extends Notification
             default => $this->surat->tipe_surat,
         };
 
-        $title = "Update Permohonan Surat";
-        $message = "";
+        $title = 'Update Permohonan Surat';
+        $message = '';
 
         // Tentukan URL default berdasarkan peran penerima (notifiable)
         // Admin -> admin.surat-approval.show
@@ -65,7 +66,7 @@ class SuratPermohonanNotification extends Notification
 
         switch ($this->status) {
             case 'pending':
-                $title = "Permohonan Surat Baru";
+                $title = 'Permohonan Surat Baru';
                 $message = "Mahasiswa {$this->surat->mahasiswa->nama_mahasiswa} mengajukan surat {$tipeLabel}.";
                 // URL sudah diatur di atas, tapi case pending khusus override jika bukan Kaprodi (pengamanan tambahan)
                 if ($notifiable->hasRole('Kaprodi')) {
@@ -73,21 +74,21 @@ class SuratPermohonanNotification extends Notification
                 }
                 break;
             case 'validasi':
-                $title = "Surat Divalidasi Kaprodi";
+                $title = 'Surat Divalidasi Kaprodi';
                 $message = "Permohonan surat {$tipeLabel} telah divalidasi Kaprodi dan sedang diteruskan ke Admin.";
                 break;
             case 'disetujui':
-                $title = "Permohonan Surat Disetujui";
+                $title = 'Permohonan Surat Disetujui';
                 $message = "Permohonan surat {$tipeLabel} Anda telah disetujui. Silakan tunggu proses finalisasi berkas.";
                 break;
             case 'ditolak':
-                $title = "Permohonan Surat Ditolak";
-                $catatan = $this->surat->catatan_admin ? ": " . $this->surat->catatan_admin : ".";
+                $title = 'Permohonan Surat Ditolak';
+                $catatan = $this->surat->catatan_admin ? ': '.$this->surat->catatan_admin : '.';
                 $message = "Maaf, permohonan surat {$tipeLabel} Anda ditolak{$catatan}";
                 break;
             case 'selesai':
-                $title = "Surat Telah Terbit";
-                $message = "Surat {$tipeLabel} Anda telah selesai diproses dan dapat diunduh.";
+                $title = 'Surat Telah Siap';
+                $message = "Surat {$tipeLabel} Anda telah selesai dicetak. Silakan ambil fisik suratnya di Ruang Akademik.";
                 break;
         }
 
