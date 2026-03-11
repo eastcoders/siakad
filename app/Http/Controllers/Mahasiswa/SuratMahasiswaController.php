@@ -308,8 +308,8 @@ class SuratMahasiswaController extends Controller
             abort(404, 'File tidak ditemukan.');
         }
 
-        return Storage::disk('public')->download(
-            $surat->file_final,
+        return response()->download(
+            storage_path('app/public/' . $surat->file_final),
             'Surat_' . str_replace('/', '_', $surat->nomor_surat) . '.pdf'
         );
     }
