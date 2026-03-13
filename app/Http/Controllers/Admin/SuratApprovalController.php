@@ -288,6 +288,10 @@ class SuratApprovalController extends Controller
                 'pindah_pt' => 'pindah_pt.docx',
                 'pindah_kelas' => 'pindah_kelas.docx',
                 'izin_pkl' => 'izin_pkl.docx',
+                'pengunduran_diri' => 'pengunduran_diri.docx',
+                'permintaan_data' => $surat->getMeta('peruntukan') === 'Tugas Akhir'
+                    ? 'izin_permintaan_data_ta.docx'
+                    : 'izin_permintaan_data_pkl.docx',
                 default => 'surat_template.docx',
             };
 
@@ -396,6 +400,52 @@ class SuratApprovalController extends Controller
                     $templateProcessor->setValue("mhs_nim#$rowNum", $student->nim ?? '-');
                     $templateProcessor->setValue("mhs_prodi#$rowNum", $student->riwayatAktif?->programStudi->nama_program_studi ?? '-');
                 }
+            } elseif ($surat->tipe_surat === 'permintaan_data') {
+                $mhs = $surat->mahasiswa;
+                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
+
+                // 1. Basic Info
+                $templateProcessor->setValues([
+                    'nama_instansi' => $surat->getMeta('pimpinan_instansi', '-'), // Per ralat: pimpinan mapped to nama_instansi
+                    'alamat_instansi' => $surat->alamat_instansi ?? '-',
+                    'tanggal_mulai' => $surat->tgl_mulai ? $surat->tgl_mulai->translatedFormat('d F Y') : '-',
+                    'tanggal_selesai' => $surat->tgl_selesai ? $surat->tgl_selesai->translatedFormat('d F Y') : '-',
+                    'nama_dosen_sbg_direktur' => $direktur?->user->dosen->nama ?? '-',
+                    'jabatan' => 'Direktur',
+                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                ]);
+
+                // 2. Dynamic Student Table
+                $students = collect([$mhs])->concat($surat->anggotas->map(fn ($a) => $a->mahasiswa)->filter());
+
+                $templateProcessor->cloneRow('mhs_nama', $students->count());
+                foreach ($students as $index => $student) {
+                    $rowNum = $index + 1;
+                    $templateProcessor->setValue("mhs_no#$rowNum", $rowNum);
+                    $templateProcessor->setValue("mhs_nama#$rowNum", $student->nama_mahasiswa ?? '-');
+                    $templateProcessor->setValue("mhs_nim#$rowNum", $student->nim ?? '-');
+                    $templateProcessor->setValue("mhs_prodi#$rowNum", $student->riwayatAktif?->programStudi->nama_program_studi ?? '-');
+                }
+            } elseif ($surat->tipe_surat === 'pengunduran_diri') {
+                $mhs = $surat->mahasiswa;
+                $activeRiwayat = $mhs->riwayatAktif;
+                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
+
+                $templateProcessor->setValues([
+                    'nama_mahasiswa' => $mhs->nama_mahasiswa ?? '-',
+                    'tempat_lahir' => $mhs->tempat_lahir ?? '-',
+                    'tanggal_lahir' => $mhs->tanggal_lahir ? $mhs->tanggal_lahir->translatedFormat('d F Y') : '-',
+                    'prodi' => $activeRiwayat?->programStudi->nama_program_studi ?? '-',
+                    'jenjang_prodi' => $activeRiwayat?->programStudi->nama_jenjang_pendidikan ?? '-',
+                    'nim' => $mhs->nim ?? '-',
+                    'tahun_masuk' => substr($mhs->id_periode_masuk, 0, 4),
+                    'alamat_mhs' => $surat->getMeta('alamat_undur_diri', $mhs->alamat ?? '-'),
+                    'tahun_ajaran' => getActiveSemester()->nama_semester ?? '-',
+                    'tanggal_pengajuan' => $surat->created_at->translatedFormat('d F Y'),
+                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                    'dosen_sbg_direktur' => $direktur?->user->dosen->nama ?? '-',
+                    'jabatan' => 'Direktur',
+                ]);
             }
 
             return $templateProcessor;

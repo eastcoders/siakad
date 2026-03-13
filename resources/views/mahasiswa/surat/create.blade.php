@@ -244,6 +244,27 @@
                                             permohonan.</p>
                                     </div>
                                 </div>
+
+                                <div class="row mb-3">
+                                    <label class="col-sm-2 col-form-label" for="alamat_undur_diri">Alamat Saat Ini</label>
+                                    <div class="col-sm-10">
+                                        <textarea class="form-control @error('alamat_undur_diri') is-invalid @enderror" 
+                                            id="alamat_undur_diri" name="alamat_undur_diri" rows="2"
+                                            placeholder="Alamat lengkap Anda saat ini">{{ old('alamat_undur_diri', auth()->user()->mahasiswa->alamat) }}</textarea>
+                                        <small class="text-muted">Alamat ini akan dicantumkan dalam surat pengunduran diri.</small>
+                                        @error('alamat_undur_diri') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label class="col-sm-2 col-form-label" for="alasan_undur_diri">Alasan Pengunduran Diri</label>
+                                    <div class="col-sm-10">
+                                        <textarea class="form-control @error('alasan_undur_diri') is-invalid @enderror" 
+                                            id="alasan_undur_diri" name="alasan_undur_diri" rows="2"
+                                            placeholder="Opsional: Tuliskan alasan Anda mengundurkan diri...">{{ old('alasan_undur_diri') }}</textarea>
+                                        @error('alasan_undur_diri') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Fields for Izin Tempat PKL -->
@@ -366,6 +387,16 @@
                                 </div>
 
                                 <div class="row mb-3">
+                                    <label class="col-sm-2 col-form-label" for="pimpinan_instansi">Pimpinan Instansi</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control @error('pimpinan_instansi') is-invalid @enderror" 
+                                            id="pimpinan_instansi" name="pimpinan_instansi" value="{{ old('pimpinan_instansi') }}"
+                                            placeholder="Nama Pimpinan / HRD / Manager di Instansi">
+                                        @error('pimpinan_instansi') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
                                     <label class="col-sm-2 col-form-label" for="alamat_instansi_data">Alamat Instansi</label>
                                     <div class="col-sm-10">
                                         <textarea class="form-control @error('alamat_instansi_data') is-invalid @enderror" 
@@ -393,6 +424,18 @@
                                             placeholder="Sebutkan data apa saja yang ingin diminta (Contoh: Data Keuangan 2023, Profil Perusahaan, dll)">{{ old('data_dibutuhkan') }}</textarea>
                                         <small class="text-muted">Gunakan baris baru atau nomor untuk daftar data yang banyak.</small>
                                         @error('data_dibutuhkan') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <label class="col-sm-2 col-form-label" for="partners_data">Teman/Partner (Opsional)</label>
+                                    <div class="col-sm-10">
+                                        <select
+                                            class="form-select select2-mahasiswa @error('partners_data') is-invalid @enderror"
+                                            id="partners_data" name="partners_data[]" multiple>
+                                        </select>
+                                        <small class="text-muted">Gunakan fitur ini jika Anda mengambil data secara berkelompok (Cari berdasarkan Nama atau NIM).</small>
+                                        @error('partners_data') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
                             </div>
@@ -435,7 +478,7 @@
                 // Initialize Select2 based on type
                 if (type === 'pindah_pt') {
                     initSelect2PT();
-                } else if (type === 'izin_pkl') {
+                } else if (type === 'izin_pkl' || type === 'permintaan_data') {
                     initSelect2Mahasiswa();
                 }
             }

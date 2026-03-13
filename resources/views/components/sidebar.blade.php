@@ -135,7 +135,7 @@
                 <span class="menu-header-text">Akademik</span>
             </li>
             <li
-                class="menu-item {{ request()->routeIs(['admin.mata-kuliah.*', 'admin.kurikulum.*', 'admin.kelas-kuliah.*', 'admin.monitoring.*', 'admin.rekap-nilai.*', 'admin.ujian.*', 'admin.pengaturan-ujian.*']) ? 'active open' : '' }}">
+                class="menu-item {{ request()->routeIs(['admin.mata-kuliah.*', 'admin.kurikulum.*', 'admin.kelas-kuliah.*', 'admin.monitoring.*', 'admin.rekap-nilai.*', 'admin.ujian.*', 'admin.pengaturan-ujian.*', 'admin.surat-approval.*']) ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle d-flex justify-content-between">
                     <div class="d-flex align-items-center">
                         <i class="menu-icon tf-icons ri-book-read-line"></i>

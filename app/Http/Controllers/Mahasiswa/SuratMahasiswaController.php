@@ -97,13 +97,19 @@ class SuratMahasiswaController extends Controller
                 'partners' => 'nullable|array',
                 'partners.*' => 'exists:mahasiswas,id',
             ]);
+        } elseif ($tipe === 'pengunduran_diri') {
+            $rules['alamat_undur_diri'] = 'required|string';
+            $rules['alasan_undur_diri'] = 'nullable|string';
         } elseif ($tipe === 'permintaan_data') {
             $rules = array_merge($rules, [
                 'peruntukan' => 'required|in:PKL,Tugas Akhir',
+                'pimpinan_instansi' => 'required|string|max:255',
                 'instansi_tujuan_data' => 'required|string|max:255',
                 'alamat_instansi_data' => 'required|string',
                 'judul_laporan' => 'required|string|max:255',
                 'data_dibutuhkan' => 'required|string',
+                'partners_data' => 'nullable|array',
+                'partners_data.*' => 'exists:mahasiswas,id',
             ]);
         }
 
@@ -241,19 +247,48 @@ class SuratMahasiswaController extends Controller
             }
 
             // Save metadata for Permintaan Data
+            if ($tipe === 'pengunduran_diri') {
+                SuratPermohonanDetail::create([
+                    'id_surat_permohonan' => $permohonan->id,
+                    'meta_key' => 'alamat_undur_diri',
+                    'meta_value' => $request->alamat_undur_diri,
+                ]);
+
+                if ($request->filled('alasan_undur_diri')) {
+                    SuratPermohonanDetail::create([
+                        'id_surat_permohonan' => $permohonan->id,
+                        'meta_key' => 'alasan_undur_diri',
+                        'meta_value' => $request->alasan_undur_diri,
+                    ]);
+                }
+            }
+
             if ($tipe === 'permintaan_data') {
                 $metaFields = [
                     'peruntukan' => $validated['peruntukan'],
+                    'pimpinan_instansi' => $validated['pimpinan_instansi'],
                     'judul_laporan' => $validated['judul_laporan'],
                     'data_dibutuhkan' => $validated['data_dibutuhkan'],
                 ];
 
                 foreach ($metaFields as $key => $value) {
-                    SuratPermohonanDetail::create([
-                        'id_surat_permohonan' => $permohonan->id,
-                        'meta_key' => $key,
-                        'meta_value' => $value,
-                    ]);
+                    if ($value) {
+                        SuratPermohonanDetail::create([
+                            'id_surat_permohonan' => $permohonan->id,
+                            'meta_key' => $key,
+                            'meta_value' => $value,
+                        ]);
+                    }
+                }
+
+                // Store partners
+                if ($request->has('partners_data')) {
+                    foreach ($request->partners_data as $partnerId) {
+                        SuratPermohonanAnggota::create([
+                            'id_surat_permohonan' => $permohonan->id,
+                            'id_mahasiswa' => $partnerId,
+                        ]);
+                    }
                 }
             }
 
