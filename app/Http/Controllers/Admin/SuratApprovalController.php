@@ -287,6 +287,7 @@ class SuratApprovalController extends Controller
                 'aktif_kuliah' => 'aktif_kuliah.docx',
                 'pindah_pt' => 'pindah_pt.docx',
                 'pindah_kelas' => 'pindah_kelas.docx',
+                'izin_pkl' => 'izin_pkl.docx',
                 default => 'surat_template.docx',
             };
 
@@ -369,6 +370,32 @@ class SuratApprovalController extends Controller
                     'nama_dosen_sbg_direktur' => $direktur?->user->dosen->nama ?? '-',
                     'tanggal_cetak' => now()->translatedFormat('d F Y'),
                 ]);
+            } elseif ($surat->tipe_surat === 'izin_pkl') {
+                $mhs = $surat->mahasiswa;
+                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
+
+                // 1. Basic Info
+                $templateProcessor->setValues([
+                    'nama_instansi' => $surat->instansi_tujuan ?? '-',
+                    'alamat_instansi' => $surat->alamat_instansi ?? '-',
+                    'tanggal_mulai' => $surat->tgl_mulai ? $surat->tgl_mulai->translatedFormat('d F Y') : '-',
+                    'tanggal_selesai' => $surat->tgl_selesai ? $surat->tgl_selesai->translatedFormat('d F Y') : '-',
+                    'nama_dosen_sbg_direktur' => $direktur?->user->dosen->nama ?? '-',
+                    'jabatan' => 'Direktur',
+                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                ]);
+
+                // 2. Dynamic Student Table
+                $students = collect([$mhs])->concat($surat->anggotas->map(fn ($a) => $a->mahasiswa)->filter());
+
+                $templateProcessor->cloneRow('mhs_nama', $students->count());
+                foreach ($students as $index => $student) {
+                    $rowNum = $index + 1;
+                    $templateProcessor->setValue("mhs_no#$rowNum", $rowNum);
+                    $templateProcessor->setValue("mhs_nama#$rowNum", $student->nama_mahasiswa ?? '-');
+                    $templateProcessor->setValue("mhs_nim#$rowNum", $student->nim ?? '-');
+                    $templateProcessor->setValue("mhs_prodi#$rowNum", $student->riwayatAktif?->programStudi->nama_program_studi ?? '-');
+                }
             }
 
             return $templateProcessor;

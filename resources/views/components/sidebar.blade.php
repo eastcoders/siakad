@@ -405,11 +405,8 @@
                     if ($dosenLogin && $dosenLogin->kaprodi) {
                         $kaprodiProdiId = $dosenLogin->kaprodi->id_prodi;
                         $kaprodiSuratCount = \App\Models\SuratPermohonan::where('status', 'pending')
-                            ->whereHas('mahasiswa', function ($q) use ($kaprodiProdiId) {
-                                $q->where('id_prodi', $kaprodiProdiId)
-                                  ->orWhereHas('riwayatAktif', function ($sq) use ($kaprodiProdiId) {
-                                      $sq->where('id_prodi', $kaprodiProdiId);
-                                  });
+                            ->whereHas('mahasiswa.riwayatAktif', function ($q) use ($kaprodiProdiId) {
+                                $q->where('id_prodi', $kaprodiProdiId);
                             })
                             ->count();
                     }
