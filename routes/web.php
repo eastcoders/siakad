@@ -143,6 +143,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'index'])->name('index');
         Route::get('/{id}', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'show'])->name('show');
         Route::post('/{id}/approve', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'approve'])->name('approve');
+        Route::post('/{id}/print', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'printOnly'])->name('print');
+        Route::post('/{id}/notify', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'notifyMahasiswa'])->name('notify');
         Route::post('/{id}/finalize', [\App\Http\Controllers\Admin\SuratApprovalController::class, 'printAndFinalize'])->name('finalize');
     });
 

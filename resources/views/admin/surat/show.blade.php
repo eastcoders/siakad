@@ -113,31 +113,40 @@
                                     </button>
                                 </div>
                             </div>
-                        @elseif($surat->status == 'disetujui')
+                        @elseif($surat->status == 'disetujui' || $surat->status == 'selesai')
                             <div class="mt-4">
                                 <h6 class="mb-3">Aksi Admin</h6>
                                 <div class="d-flex flex-column gap-2">
-                                    <form action="{{ route('admin.surat-approval.finalize', $surat->id) }}" method="POST">
+                                    <!-- Tombol Cetak (Selalu bisa diklik jika sudah disetujui) -->
+                                    <form action="{{ route('admin.surat-approval.print', $surat->id) }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn btn-primary w-100">
-                                            <i class="ri-printer-line me-1"></i> Cetak Dokumen (DOCX) & Beritahu Mahasiswa
+                                            <i class="ri-printer-line me-1"></i> Cetak Dokumen (DOCX)
                                         </button>
                                     </form>
-                                </div>
-                                <div class="alert alert-info mt-3 mb-0 small">
-                                    <i class="ri-information-line me-1"></i> Setelah dicetak, mahasiswa akan diberitahu untuk mengambil surat di Ruang Akademik.
+
+                                    <!-- Tombol Beritahu (Hanya jika status belum selesai) -->
+                                    @if($surat->status == 'disetujui')
+                                        <form action="{{ route('admin.surat-approval.notify', $surat->id) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="btn btn-success w-100">
+                                                <i class="ri-notification-3-line me-1"></i> Beritahu Mahasiswa (Selesai)
+                                            </button>
+                                        </form>
+                                        <div class="alert alert-info mt-3 mb-0 small">
+                                            <i class="ri-information-line me-1"></i> Klik "Beritahu" setelah dokumen fisik siap diambil untuk mengirim notifikasi ke mahasiswa.
+                                        </div>
+                                    @else
+                                        <div class="alert alert-success mt-0 mb-0 small">
+                                            <i class="ri-checkbox-circle-fill me-1"></i> Mahasiswa telah diberitahu bahwa surat selesai.
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         @elseif($surat->status == 'pending')
                             <div class="mt-4">
                                 <div class="alert alert-secondary mb-0">
                                     <i class="ri-information-line me-1"></i> Menunggu validasi dari Kepala Program Studi.
-                                </div>
-                            </div>
-                        @elseif($surat->status == 'selesai')
-                            <div class="mt-4">
-                                <div class="alert alert-success mb-0">
-                                    <i class="ri-checkbox-circle-fill me-1"></i> Surat telah dicetak dan mahasiswa telah diberitahu.
                                 </div>
                             </div>
                         @endif

@@ -136,9 +136,17 @@
             </li>
             <li
                 class="menu-item {{ request()->routeIs(['admin.mata-kuliah.*', 'admin.kurikulum.*', 'admin.kelas-kuliah.*', 'admin.monitoring.*', 'admin.rekap-nilai.*', 'admin.ujian.*', 'admin.pengaturan-ujian.*']) ? 'active open' : '' }}">
-                <a href="javascript:void(0);" class="menu-link menu-toggle">
-                    <i class="menu-icon tf-icons ri-book-read-line"></i>
-                    <div data-i18n="Data Perkuliahan">Data Perkuliahan</div>
+                <a href="javascript:void(0);" class="menu-link menu-toggle d-flex justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="menu-icon tf-icons ri-book-read-line"></i>
+                        <div data-i18n="Data Perkuliahan">Data Perkuliahan</div>
+                    </div>
+                    @php
+                        $adminSuratCount = \App\Models\SuratPermohonan::where('status', 'validasi')->count();
+                    @endphp
+                    @if($adminSuratCount > 0)
+                        <div class="badge bg-danger rounded-pill ms-auto">{{ $adminSuratCount }}</div>
+                    @endif
                 </a>
                 <ul class="menu-sub">
                     <li class="menu-item {{ request()->routeIs('admin.mata-kuliah.*') ? 'active' : '' }}">
@@ -186,7 +194,7 @@
                     </li>
 
                     @php
-                        $adminSuratCount = \App\Models\SuratPermohonan::where('status', 'validasi')->count();
+                        // Already calculated above for the parent menu
                     @endphp
                     <li class="menu-item {{ request()->routeIs('admin.surat-approval.*') ? 'active' : '' }}">
                         <a href="{{ route('admin.surat-approval.index') }}"
@@ -397,8 +405,11 @@
                     if ($dosenLogin && $dosenLogin->kaprodi) {
                         $kaprodiProdiId = $dosenLogin->kaprodi->id_prodi;
                         $kaprodiSuratCount = \App\Models\SuratPermohonan::where('status', 'pending')
-                            ->whereHas('mahasiswa.riwayatAktif', function ($q) use ($kaprodiProdiId) {
-                                $q->where('id_prodi', $kaprodiProdiId);
+                            ->whereHas('mahasiswa', function ($q) use ($kaprodiProdiId) {
+                                $q->where('id_prodi', $kaprodiProdiId)
+                                  ->orWhereHas('riwayatAktif', function ($sq) use ($kaprodiProdiId) {
+                                      $sq->where('id_prodi', $kaprodiProdiId);
+                                  });
                             })
                             ->count();
                     }

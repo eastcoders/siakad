@@ -87,7 +87,7 @@ class SuratApprovalController extends Controller
                 ? 'Permohonan surat berhasil disetujui.'
                 : 'Permohonan surat telah ditolak.';
 
-            return redirect()->route('admin.surat-approval.index')->with('success', $message);
+            return redirect()->route('admin.surat-approval.show', $id)->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('SYSTEM_ERROR: Gagal menyetujui/menolak surat', [
@@ -100,6 +100,106 @@ class SuratApprovalController extends Controller
 
     /**
      * Print DOCX from template and finalize the request.
+     */
+    /**
+     * Print DOCX Only (Doesn't change status to finished).
+     */
+    public function printOnly(Request $request, $id)
+    {
+        try {
+            $surat = SuratPermohonan::with([
+                'mahasiswa.user',
+                'mahasiswa.riwayatAktif.programStudi',
+                'mahasiswa.wilayah',
+                'semester',
+                'details',
+                'anggotas.mahasiswa',
+            ])->findOrFail($id);
+
+            $templateProcessor = $this->prepareTemplateProcessor($surat);
+
+            // Save the processed DOCX to public storage (Overwrites if exists)
+            $outputFileName = 'Surat_'.$surat->nomor_tiket.'_'.time().'.docx';
+            $outputPathRelative = 'surat-final/'.$outputFileName;
+            $outputPathAbsolute = storage_path('app/public/'.$outputPathRelative);
+
+            // Ensure output directory exists
+            if (! file_exists(dirname($outputPathAbsolute))) {
+                mkdir(dirname($outputPathAbsolute), 0755, true);
+            }
+
+            $templateProcessor->saveAs($outputPathAbsolute);
+
+            // Update file_final path even if state is not finished yet
+            $surat->update(['file_final' => $outputPathRelative]);
+
+            return response()->download($outputPathAbsolute);
+
+        } catch (\Exception $e) {
+            Log::error('SYSTEM_ERROR: Gagal mencetak dokumen surat', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return back()->with('error', 'Terjadi kesalahan sistem saat membuat dokumen.');
+        }
+    }
+
+    /**
+     * Finalize and Notify Mahasiswa.
+     */
+    public function notifyMahasiswa(Request $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $surat = SuratPermohonan::with(['mahasiswa.user', 'anggotas.mahasiswa.user'])->findOrFail($id);
+
+            if ($surat->status !== 'disetujui' && $surat->status !== 'selesai') {
+                return back()->with('error', 'Hanya surat yang sudah disetujui yang dapat dikonfirmasi/diberitahu.');
+            }
+
+            // Update Database
+            $surat->update([
+                'status' => 'selesai',
+                'tgl_selesai' => $surat->tgl_selesai ?? now(),
+            ]);
+
+            // Notify Mahasiswa
+            if ($surat->mahasiswa && $surat->mahasiswa->user) {
+                $surat->mahasiswa->user->notify(new SuratPermohonanNotification($surat, 'selesai'));
+            }
+
+            // Notify Partners if any (PKL Group)
+            if ($surat->tipe_surat === 'izin_pkl') {
+                foreach ($surat->anggotas as $anggota) {
+                    if ($anggota->mahasiswa && $anggota->mahasiswa->user) {
+                        $anggota->mahasiswa->user->notify(new SuratPermohonanNotification($surat, 'selesai'));
+                    }
+                }
+            }
+
+            DB::commit();
+
+            Log::info('CRUD_UPDATE: [SuratPermohonan] Mahasiswa diberitahu (Selesai)', [
+                'id' => $id,
+                'admin_id' => auth()->id(),
+            ]);
+
+            return back()->with('success', 'Mahasiswa telah berhasil diberitahu.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('SYSTEM_ERROR: Gagal memberitahu mahasiswa', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Terjadi kesalahan sistem.');
+        }
+    }
+
+    /**
+     * Legacy: Print DOCX from template and finalize the request.
      */
     public function printAndFinalize(Request $request, $id)
     {
@@ -118,176 +218,7 @@ class SuratApprovalController extends Controller
                 return back()->with('error', 'Surat harus disetujui terlebih dahulu.');
             }
 
-            // Ensure templates directory exists
-            $templateDir = storage_path('app/templates');
-            if (! file_exists($templateDir)) {
-                mkdir($templateDir, 0755, true);
-            }
-
-            // Determine Template Path based on surat type
-            if ($surat->tipe_surat === 'cuti_kuliah') {
-                $templateName = 'cuti_kuliah.docx';
-            } elseif ($surat->tipe_surat === 'aktif_kuliah') {
-                $templateName = 'aktif_kuliah.docx';
-            } elseif ($surat->tipe_surat === 'pindah_pt') {
-                $templateName = 'pindah_pt.docx';
-            } elseif ($surat->tipe_surat === 'pindah_kelas') {
-                $templateName = 'pindah_kelas.docx';
-            } else {
-                $templateName = 'surat_template.docx';
-            }
-            $templatePath = $templateDir.'/'.$templateName;
-
-            // Create a dummy template if it doesn't exist yet (Temporary fallback)
-            if (! file_exists($templatePath)) {
-                $phpWord = new \PhpOffice\PhpWord\PhpWord;
-                $section = $phpWord->addSection();
-                $section->addText('SURAT PERMOHONAN', ['bold' => true, 'size' => 16]);
-                $section->addText('Nomor Tiket: ${nomor_tiket}');
-                $section->addText('Nama: ${nama_mahasiswa}');
-                $section->addText('NIM: ${nim}');
-                $section->addText('Tipe Surat: ${tipe_surat}');
-                $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
-                $objWriter->save($templatePath);
-            }
-
-            // Process Template
-            $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
-
-            // Common Variables
-            $templateProcessor->setValue('nomor_surat', $surat->nomor_surat ?? '-');
-            $templateProcessor->setValue('nama_mahasiswa', $surat->mahasiswa->nama_mahasiswa ?? '-');
-            $templateProcessor->setValue('nim', $surat->mahasiswa->nim ?? '-');
-
-            // Specific Template Variables
-            if ($surat->tipe_surat === 'cuti_kuliah') {
-                $prodi = $surat->mahasiswa->riwayatAktif->programStudi->nama_program_studi ?? '-';
-
-                $namaSemester = $surat->semester->nama_semester ?? '';
-                $parts = explode(' ', $namaSemester);
-                $tahunAkademik = $parts[0] ?? '-';
-                $sms = $parts[1] ?? '-';
-
-                $tanggalPengajuan = $surat->created_at ? $surat->created_at->translatedFormat('d F Y') : now()->translatedFormat('d F Y');
-
-                $templateProcessor->setValue('program_studi', $prodi);
-                $templateProcessor->setValue('tanggal_pengajuan', $tanggalPengajuan);
-                $templateProcessor->setValue('semester_cuti', $sms);
-                $templateProcessor->setValue('tahun_akademik', $tahunAkademik);
-            } elseif ($surat->tipe_surat === 'aktif_kuliah') {
-                $mhs = $surat->mahasiswa;
-                $prodi = $mhs->riwayatAktif->programStudi->nama_program_studi ?? '-';
-
-                // Pecah Semester
-                $namaSemester = $surat->semester->nama_semester ?? '';
-                $parts = explode(' ', $namaSemester);
-                $tahunAkademik = $parts[0] ?? '-';
-                $sms = $parts[1] ?? '-';
-
-                // Biodata
-                $alamat = collect([$mhs->jalan, $mhs->kelurahan, $mhs->wilayah->nama_wilayah ?? ''])->filter()->implode(', ');
-                $tahunMasuk = $mhs->riwayatAktif?->id_periode_masuk ? substr($mhs->riwayatAktif->id_periode_masuk, 0, 4) : '-';
-
-                // Cari Direktur Aktif
-                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
-                $namaDir = $direktur?->user->dosen->nama ?? '-';
-
-                $templateProcessor->setValues([
-                    'nama_lengkap_dir' => $namaDir, 
-                    'jabatan_direktur' => 'Direktur',
-                    'jabatan' => 'Direktur',
-
-                    'tahun_masuk' => $tahunMasuk,
-                    'tempat_lahir' => $mhs->tempat_lahir ?? '-',
-                    'tanggal_lahir' => $mhs->tanggal_lahir ? $mhs->tanggal_lahir->translatedFormat('d F Y') : '-',
-                    'alamat' => $alamat ?: '-',
-
-                    // Data Orang Tua (ditarik dari meta properties pengajuan)
-                    'nama_ortu' => $surat->getMeta('nama_ortu', $mhs->nama_ayah ?: '-'),
-                    'nama_instansi_ortu' => $surat->getMeta('instansi_ortu', '-'),
-                    'nip_ortu' => $surat->getMeta('nip_ortu', '-'),
-                    'pangkat_ortu' => $surat->getMeta('jabatan_ortu', '-'),
-                    'Alamat_instansi' => $surat->getMeta('alamat_instansi_ortu', '-'),
-
-                    'program_studi' => $prodi,
-                    'semester' => $sms,
-                    'tahun_akademik' => $tahunAkademik,
-                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
-                ]);
-            } elseif ($surat->tipe_surat === 'pindah_pt') {
-                $mhs = $surat->mahasiswa;
-                $prodi = $mhs->riwayatAktif->programStudi;
-
-                // Cari Direktur Aktif
-                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
-                $namaDir = $direktur?->user->dosen->nama ?? '-';
-                $nidpDir = ($direktur?->user->dosen->nip ?? $direktur?->user->dosen->nidn) ?? '-';
-
-                $templateProcessor->setValues([
-                    'dosen_sbg_direktur' => $namaDir,
-                    'nidp' => $nidpDir,
-                    'jabatan' => 'Direktur',
-
-                    'nama_mahasiswa' => $mhs->nama_mahasiswa ?? '-',
-                    'nim' => $mhs->nim ?? '-',
-                    'prodi' => $prodi->nama_program_studi ?? '-',
-                    'jenjang_pendidikan_prodi' => $prodi->nama_jenjang_pendidikan ?? '-',
-                    'tahun_masuk' => $mhs->riwayatAktif?->id_periode_masuk ? substr($mhs->riwayatAktif->id_periode_masuk, 0, 4) : '-',
-                    'tahun_angkatan' => $mhs->riwayatAktif?->id_periode_masuk ? substr($mhs->riwayatAktif->id_periode_masuk, 0, 4) : '-',
-
-                    'pt_tujuan' => $surat->getMeta('pt_tujuan_nama', '-'),
-                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
-                ]);
-            } elseif ($surat->tipe_surat === 'pindah_kelas') {
-                $mhs = $surat->mahasiswa;
-                $prodi = $mhs->riwayatAktif->programStudi->nama_program_studi ?? '-';
-                $kodeProdiAlfa = $mhs->riwayatAktif->programStudi->kode_prodi_alfa ?? 'XX';
-                $tingkatSemester = $mhs->tingkat_semester;
-
-                // Pecah Semester
-                $namaSemester = $surat->semester->nama_semester ?? '';
-                $parts = explode(' ', $namaSemester);
-                $tahunAkademik = $parts[0] ?? '-';
-                $sms = $parts[1] ?? '-';
-
-                // Data Dinamis dari Pengajuan (diketahui user menginput lewat form)
-                // Key 'kelas_tujuan' adalah standar dari SuratMahasiswaController@store
-                $tipeSaatIni = collect([
-                    'A' => 'Reguler Pagi',
-                    'B' => 'Karyawan / Reguler Malam',
-                    'C' => 'Eksekutif / Shift',
-                ])->get($mhs->tipe_kelas, $mhs->tipe_kelas ?? '-');
-
-                $tipeTujuanHuman = $surat->getMeta('kelas_tujuan', '-'); // Misal: "Sore" atau "Pagi"
-                $tipeTujuan = $tipeTujuanHuman === 'Pagi' ? 'Reguler Pagi' : ($tipeTujuanHuman === 'Sore' ? 'Karyawan / Reguler Malam' : $tipeTujuanHuman);
-                $tipeTujuanAlfa = $tipeTujuanHuman === 'Pagi' ? 'A' : ($tipeTujuanHuman === 'Sore' ? 'B' : 'X');
-
-                $templateProcessor->setValues([
-                    // Data Mahasiswa
-                    'nama_mahasiswa' => $mhs->nama_mahasiswa ?? '-',
-                    'nim' => $mhs->nim ?? '-',
-                    'nama_prodi' => $prodi,
-                    'kode_prodi_alfa' => $kodeProdiAlfa,
-                    'tingkat_semester' => $tingkatSemester,
-
-                    // Data Semester Aktif
-                    'semester_genap_atau_ganjil' => $sms,
-                    'tahun_ajaran' => $tahunAkademik,
-
-                    // Data Perpindahan
-                    'tipe_kelas_saat_ini' => $tipeSaatIni,
-                    'tipe_kelas_tujuan' => $tipeTujuan,
-                    'tipe_kelas_aplfabet' => $tipeTujuanAlfa,
-
-                    // Meta Konstan/Umum
-                    'tanggal_pengajuan' => $surat->tgl_pengajuan ? \Carbon\Carbon::parse($surat->tgl_pengajuan)->translatedFormat('d F Y') : now()->translatedFormat('d F Y'),
-                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
-                    'nama_dosen_sbg_direktur' => '[Nama Direktur]', // Hardcoded fallback
-                ]);
-            } else {
-                $templateProcessor->setValue('nomor_tiket', $surat->nomor_tiket);
-                $templateProcessor->setValue('tipe_surat', strtoupper(str_replace('_', ' ', $surat->tipe_surat)));
-            }
+            $templateProcessor = $this->prepareTemplateProcessor($surat);
 
             // Save the processed DOCX to public storage
             $outputFileName = 'Surat_'.$surat->nomor_tiket.'_'.time().'.docx';
@@ -304,7 +235,7 @@ class SuratApprovalController extends Controller
             // Update Database
             $surat->update([
                 'status' => 'selesai',
-                'file_final' => $outputPathRelative, // Save relative path
+                'file_final' => $outputPathRelative,
                 'tgl_selesai' => now(),
             ]);
 
@@ -330,7 +261,7 @@ class SuratApprovalController extends Controller
                 'file' => $outputPathRelative,
             ]);
 
-            return back()->with('success', 'Dokumen DOCX berhasil dicetak dan permohonan telah selesai.');
+            return response()->download($outputPathAbsolute);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -339,6 +270,111 @@ class SuratApprovalController extends Controller
             ]);
 
             return back()->with('error', 'Terjadi kesalahan sistem saat membuat dokumen.');
+        }
+    }
+
+    /**
+     * Private Helper: Prepare the Word Template Processor with all variables.
+     */
+    private function prepareTemplateProcessor(SuratPermohonan $surat): \PhpOffice\PhpWord\TemplateProcessor
+    {
+        try {
+            $templateDir = storage_path('app/templates');
+
+            // Determine Template Path
+            $templateName = match ($surat->tipe_surat) {
+                'cuti_kuliah' => 'cuti_kuliah.docx',
+                'aktif_kuliah' => 'aktif_kuliah.docx',
+                'pindah_pt' => 'pindah_pt.docx',
+                'pindah_kelas' => 'pindah_kelas.docx',
+                default => 'surat_template.docx',
+            };
+
+            $templatePath = $templateDir.'/'.$templateName;
+
+            if (! file_exists($templatePath)) {
+                throw new \Exception("File template {$templateName} tidak ditemukan di storage/app/templates/");
+            }
+
+            $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+
+            // 1. Common Variables
+            $templateProcessor->setValue('nomor_surat', $surat->nomor_surat ?? '-');
+            $templateProcessor->setValue('nama_mahasiswa', $surat->mahasiswa->nama_mahasiswa ?? '-');
+            $templateProcessor->setValue('nim', $surat->mahasiswa->nim ?? '-');
+            $templateProcessor->setValue('nomor_tiket', $surat->nomor_tiket);
+
+            // 2. Specific Template Variables
+            if ($surat->tipe_surat === 'cuti_kuliah') {
+                $prodi = $surat->mahasiswa->riwayatAktif->programStudi->nama_program_studi ?? '-';
+                $namaSemester = $surat->semester->nama_semester ?? '';
+                $parts = explode(' ', $namaSemester);
+
+                $templateProcessor->setValues([
+                    'program_studi' => $prodi,
+                    'tanggal_pengajuan' => $surat->created_at ? $surat->created_at->translatedFormat('d F Y') : now()->translatedFormat('d F Y'),
+                    'semester_cuti' => $parts[1] ?? '-',
+                    'tahun_akademik' => $parts[0] ?? '-',
+                ]);
+            } elseif ($surat->tipe_surat === 'aktif_kuliah') {
+                $mhs = $surat->mahasiswa;
+                $prodi = $mhs->riwayatAktif?->programStudi->nama_program_studi ?? '-';
+                $namaSemester = $surat->semester->nama_semester ?? '';
+                $parts = explode(' ', $namaSemester);
+
+                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
+                $namaDir = $direktur?->user->dosen->nama ?? '-';
+
+                $templateProcessor->setValues([
+                    'nama_lengkap_dir' => $namaDir,
+                    'jabatan' => 'Direktur',
+                    'tahun_masuk' => $mhs->riwayatAktif?->id_periode_masuk ? substr($mhs->riwayatAktif->id_periode_masuk, 0, 4) : '-',
+                    'tempat_lahir' => $mhs->tempat_lahir ?? '-',
+                    'tanggal_lahir' => $mhs->tanggal_lahir ? $mhs->tanggal_lahir->translatedFormat('d F Y') : '-',
+                    'alamat' => collect([$mhs->jalan, $mhs->kelurahan, $mhs->wilayah->nama_wilayah ?? ''])->filter()->implode(', '),
+                    'nama_ortu' => $surat->getMeta('nama_ortu', $mhs->nama_ayah ?: '-'),
+                    'program_studi' => $prodi,
+                    'semester' => $parts[1] ?? '-',
+                    'tahun_akademik' => $parts[0] ?? '-',
+                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                ]);
+            } elseif ($surat->tipe_surat === 'pindah_pt') {
+                $mhs = $surat->mahasiswa;
+                $prodi = $mhs->riwayatAktif?->programStudi;
+                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
+
+                $templateProcessor->setValues([
+                    'dosen_sbg_direktur' => $direktur?->user->dosen->nama ?? '-',
+                    'nidp' => ($direktur?->user->dosen->nip ?? $direktur?->user->dosen->nidn) ?? '-',
+                    'jabatan' => 'Direktur',
+                    'prodi' => $prodi->nama_program_studi ?? '-',
+                    'jenjang_pendidikan_prodi' => $prodi->nama_jenjang_pendidikan ?? '-',
+                    'pt_tujuan' => $surat->getMeta('pt_tujuan_nama', '-'),
+                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                ]);
+            } elseif ($surat->tipe_surat === 'pindah_kelas') {
+                $mhs = $surat->mahasiswa;
+                $prodi = $mhs->riwayatAktif?->programStudi;
+                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
+
+                $tipeSaatIni = collect(['A' => 'Reguler Pagi', 'B' => 'Karyawan', 'C' => 'Shift'])->get($mhs->tipe_kelas, $mhs->tipe_kelas);
+                $tipeTujuanHuman = $surat->getMeta('kelas_tujuan', '-');
+
+                $templateProcessor->setValues([
+                    'nama_prodi' => $prodi->nama_program_studi ?? '-',
+                    'kode_prodi_alfa' => $prodi->kode_prodi_alfa ?? 'XX',
+                    'tingkat_semester' => $mhs->tingkat_semester,
+                    'tipe_kelas_saat_ini' => $tipeSaatIni,
+                    'tipe_kelas_tujuan' => $tipeTujuanHuman,
+                    'nama_dosen_sbg_direktur' => $direktur?->user->dosen->nama ?? '-',
+                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                ]);
+            }
+
+            return $templateProcessor;
+        } catch (\Exception $e) {
+            Log::error('DOC_GEN_ERROR: Gagal memproses template', ['message' => $e->getMessage()]);
+            throw $e;
         }
     }
 }
