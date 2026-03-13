@@ -129,6 +129,8 @@ class SuratApprovalController extends Controller
                 $templateName = 'cuti_kuliah.docx';
             } elseif ($surat->tipe_surat === 'aktif_kuliah') {
                 $templateName = 'aktif_kuliah.docx';
+            } elseif ($surat->tipe_surat === 'pindah_pt') {
+                $templateName = 'pindah_pt.docx';
             } elseif ($surat->tipe_surat === 'pindah_kelas') {
                 $templateName = 'pindah_kelas.docx';
             } else {
@@ -186,8 +188,12 @@ class SuratApprovalController extends Controller
                 $alamat = collect([$mhs->jalan, $mhs->kelurahan, $mhs->wilayah->nama_wilayah ?? ''])->filter()->implode(', ');
                 $tahunMasuk = $mhs->riwayatAktif?->id_periode_masuk ? substr($mhs->riwayatAktif->id_periode_masuk, 0, 4) : '-';
 
+                // Cari Direktur Aktif
+                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
+                $namaDir = $direktur?->user->dosen->nama ?? '-';
+
                 $templateProcessor->setValues([
-                    'nama_lengkap_dir' => '[Nama Direktur]', // Hardcoded fallback
+                    'nama_lengkap_dir' => $namaDir, 
                     'jabatan_direktur' => 'Direktur',
                     'jabatan' => 'Direktur',
 
@@ -206,6 +212,30 @@ class SuratApprovalController extends Controller
                     'program_studi' => $prodi,
                     'semester' => $sms,
                     'tahun_akademik' => $tahunAkademik,
+                    'tanggal_cetak' => now()->translatedFormat('d F Y'),
+                ]);
+            } elseif ($surat->tipe_surat === 'pindah_pt') {
+                $mhs = $surat->mahasiswa;
+                $prodi = $mhs->riwayatAktif->programStudi;
+
+                // Cari Direktur Aktif
+                $direktur = \App\Models\Direktur::where('user_jabatans.is_active', true)->with('user.dosen')->first();
+                $namaDir = $direktur?->user->dosen->nama ?? '-';
+                $nidpDir = ($direktur?->user->dosen->nip ?? $direktur?->user->dosen->nidn) ?? '-';
+
+                $templateProcessor->setValues([
+                    'dosen_sbg_direktur' => $namaDir,
+                    'nidp' => $nidpDir,
+                    'jabatan' => 'Direktur',
+
+                    'nama_mahasiswa' => $mhs->nama_mahasiswa ?? '-',
+                    'nim' => $mhs->nim ?? '-',
+                    'prodi' => $prodi->nama_program_studi ?? '-',
+                    'jenjang_pendidikan_prodi' => $prodi->nama_jenjang_pendidikan ?? '-',
+                    'tahun_masuk' => $mhs->riwayatAktif?->id_periode_masuk ? substr($mhs->riwayatAktif->id_periode_masuk, 0, 4) : '-',
+                    'tahun_angkatan' => $mhs->riwayatAktif?->id_periode_masuk ? substr($mhs->riwayatAktif->id_periode_masuk, 0, 4) : '-',
+
+                    'pt_tujuan' => $surat->getMeta('pt_tujuan_nama', '-'),
                     'tanggal_cetak' => now()->translatedFormat('d F Y'),
                 ]);
             } elseif ($surat->tipe_surat === 'pindah_kelas') {

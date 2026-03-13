@@ -134,17 +134,11 @@
             <li class="menu-header mt-5 small text-uppercase">
                 <span class="menu-header-text">Akademik</span>
             </li>
-            @php
-                $adminSuratCount = \App\Models\SuratPermohonan::where('status', 'validasi')->count();
-            @endphp
             <li
-                class="menu-item {{ request()->routeIs(['admin.mata-kuliah.*', 'admin.kurikulum.*', 'admin.kelas-kuliah.*', 'admin.monitoring.*', 'admin.rekap-nilai.*', 'admin.ujian.*', 'admin.pengaturan-ujian.*', 'admin.surat-approval.*']) ? 'active open' : '' }}">
+                class="menu-item {{ request()->routeIs(['admin.mata-kuliah.*', 'admin.kurikulum.*', 'admin.kelas-kuliah.*', 'admin.monitoring.*', 'admin.rekap-nilai.*', 'admin.ujian.*', 'admin.pengaturan-ujian.*']) ? 'active open' : '' }}">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons ri-book-read-line"></i>
                     <div data-i18n="Data Perkuliahan">Data Perkuliahan</div>
-                    @if($adminSuratCount > 0)
-                        <div class="badge bg-danger rounded-pill ms-auto">{{ $adminSuratCount }}</div>
-                    @endif
                 </a>
                 <ul class="menu-sub">
                     <li class="menu-item {{ request()->routeIs('admin.mata-kuliah.*') ? 'active' : '' }}">
@@ -191,10 +185,15 @@
                         </ul>
                     </li>
 
-
+                    @php
+                        $adminSuratCount = \App\Models\SuratPermohonan::where('status', 'validasi')->count();
+                    @endphp
                     <li class="menu-item {{ request()->routeIs('admin.surat-approval.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin.surat-approval.index') }}" class="menu-link">
-                            <div data-i18n="Persetujuan Surat">Persetujuan Surat</div>
+                        <a href="{{ route('admin.surat-approval.index') }}"
+                            class="menu-link d-flex justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div data-i18n="Persetujuan Surat">Persetujuan Surat</div>
+                            </div>
                             @if($adminSuratCount > 0)
                                 <div class="badge bg-danger rounded-pill ms-auto">{{ $adminSuratCount }}</div>
                             @endif
@@ -395,21 +394,21 @@
                 @php
                     $kaprodiSuratCount = 0;
                     $dosenLogin = auth()->user()->dosen;
-                    if ($dosenLogin) {
-                        $kaprodiProdiIds = \App\Models\Kaprodi::where('dosen_id', $dosenLogin->id)->pluck('id_prodi');
-                        if ($kaprodiProdiIds->isNotEmpty()) {
-                            $kaprodiSuratCount = \App\Models\SuratPermohonan::where('status', 'pending')
-                                ->whereHas('mahasiswa.riwayatAktif', function ($q) use ($kaprodiProdiIds) {
-                                    $q->whereIn('id_prodi', $kaprodiProdiIds);
-                                })
-                                ->count();
-                        }
+                    if ($dosenLogin && $dosenLogin->kaprodi) {
+                        $kaprodiProdiId = $dosenLogin->kaprodi->id_prodi;
+                        $kaprodiSuratCount = \App\Models\SuratPermohonan::where('status', 'pending')
+                            ->whereHas('mahasiswa.riwayatAktif', function ($q) use ($kaprodiProdiId) {
+                                $q->where('id_prodi', $kaprodiProdiId);
+                            })
+                            ->count();
                     }
                 @endphp
                 <li class="menu-item {{ request()->routeIs('kaprodi.surat.*') ? 'active' : '' }}">
-                    <a href="{{ route('kaprodi.surat.index') }}" class="menu-link">
-                        <i class="menu-icon tf-icons ri-mail-check-line"></i>
-                        <div data-i18n="Persetujuan Surat">Persetujuan Surat</div>
+                    <a href="{{ route('kaprodi.surat.index') }}" class="menu-link d-flex justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="menu-icon tf-icons ri-mail-check-line"></i>
+                            <div data-i18n="Persetujuan Surat">Persetujuan Surat</div>
+                        </div>
                         @if($kaprodiSuratCount > 0)
                             <div class="badge bg-danger rounded-pill ms-auto">{{ $kaprodiSuratCount }}</div>
                         @endif
