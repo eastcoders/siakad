@@ -69,7 +69,6 @@
                             <span class="app-brand-logo demo">
                                 <img src="{{ asset('img/logo.png') }}" alt="Logo SIAP">
                             </span>
-                            <span class="app-brand-text demo text-heading fw-bold ms-1">SIAP</span>
                         </a>
                     </div>
                     <!-- /Logo -->
