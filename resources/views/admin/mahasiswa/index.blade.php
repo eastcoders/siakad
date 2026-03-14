@@ -58,7 +58,7 @@
                         <th width="140px">Tipe Kelas</th>
                         <th>Jenis Kelamin</th>
                         <th>Agama</th>
-                        <th>SKS Kumulatif</th>
+                        <th class="text-center">Total SKS Diambil</th>
                         <th>Tanggal Lahir</th>
                     </tr>
                 </thead>
@@ -134,7 +134,7 @@
                             <td>{{ $item->jenis_kelamin == 'L' ? 'Laki - Laki' : 'Perempuan' }}</td>
                             <td>{{ $item->agama->nama_agama ?? '-' }}</td>
                             <td class="text-center">
-                                <span class="fw-bold">{{ floatval($item->total_sks) }}</span>
+                                <span class="fw-bold text-primary">{{ floatval($item->total_sks) }}</span>
                             </td>
                             <td>{{ $item->tanggal_lahir ? $item->tanggal_lahir->format('d/m/Y') : '-' }}</td>
                         </tr>

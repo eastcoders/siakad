@@ -91,8 +91,10 @@
                                             </div>
                                         </td>
                                         <td>
-                                            @if($riwayat->is_synced)
+                                            @if($riwayat->status_sinkronisasi === 'synced')
                                                 <span class="badge bg-success">sudah sync</span>
+                                            @elseif($riwayat->status_sinkronisasi === 'updated_local')
+                                                <span class="badge bg-info">perubahan lokal</span>
                                             @else
                                                 <span class="badge bg-warning">belum sync</span>
                                             @endif
@@ -101,9 +103,9 @@
                                         <td>{{ $riwayat->jenisDaftar->nama_jenis_daftar }}</td>
                                         <td>{{ $riwayat->semester->nama_semester ?? '' }}</td>
                                         <td>{{ $riwayat->tanggal_daftar?->format('d F Y') ?? '-' }}</td>
-                                        <td>{{ $riwayat->perguruanTinggi->nama_perguruan_tinggi ?? $riwayat->id_perguruan_tinggi ?? '-' }}
+                                        <td>{{ $riwayat->perguruanTinggi?->nama_perguruan_tinggi ?? $riwayat->id_perguruan_tinggi ?? '-' }}
                                         </td>
-                                        <td>{{ $riwayat->prodi->nama_program_studi ?? $riwayat->id_prodi ?? '-' }}</td>
+                                        <td>{{ $riwayat->prodi?->nama_program_studi ?? $riwayat->id_prodi ?? '-' }}</td>
                                     </tr>
                                 @empty
                                     <tr>

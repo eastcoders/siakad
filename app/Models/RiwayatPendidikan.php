@@ -44,17 +44,17 @@ class RiwayatPendidikan extends Model
 
     public function perguruanTinggi()
     {
-        return $this->belongsTo(ProfilPerguruanTinggi::class, 'id_perguruan_tinggi', 'id_perguruan_tinggi');
+        return $this->belongsTo(RefPerguruanTinggi::class, 'id_perguruan_tinggi', 'id');
     }
 
     public function prodi()
     {
-        return $this->belongsTo(ProgramStudi::class, 'id_prodi', 'id_prodi');
+        return $this->belongsTo(RefProdi::class, 'id_prodi', 'id');
     }
 
     public function programStudi()
     {
-        return $this->belongsTo(ProgramStudi::class, 'id_prodi', 'id_prodi');
+        return $this->belongsTo(RefProdi::class, 'id_prodi', 'id');
     }
 
     public function semester()

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\Feeder\DispatchRefNasionalSyncJob;
 use App\Jobs\Feeder\PullRefBiodataJob;
 use App\Jobs\Feeder\PullRefPendidikanJob;
-use App\Jobs\Feeder\PullRefNasionalJob;
 use App\Services\Feeder\FeederSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Bus;
@@ -55,7 +55,7 @@ class SyncManagerController extends Controller
     {
         $request->validate([
             'entity' => 'required|string',
-            'filters' => 'nullable|array'
+            'filters' => 'nullable|array',
         ]);
 
         $entity = $request->entity;
@@ -65,7 +65,7 @@ class SyncManagerController extends Controller
             $refJobMap = [
                 'RefBiodata' => PullRefBiodataJob::class,
                 'RefPendidikan' => PullRefPendidikanJob::class,
-                'RefNasional' => PullRefNasionalJob::class,
+                'RefNasional' => DispatchRefNasionalSyncJob::class,
             ];
 
             if (isset($refJobMap[$entity])) {
@@ -79,19 +79,20 @@ class SyncManagerController extends Controller
                 return response()->json([
                     'status' => 'success',
                     'message' => 'Tidak ada data baru untuk disinkronkan.',
-                    'batchId' => null
+                    'batchId' => null,
                 ]);
             }
 
             return response()->json([
                 'status' => 'success',
-                'batchId' => $batchId
+                'batchId' => $batchId,
             ]);
         } catch (\Exception $e) {
-            Log::error("SYSTEM_ERROR: Gagal dispatch sync", ['entity' => $entity, 'message' => $e->getMessage()]);
+            Log::error('SYSTEM_ERROR: Gagal dispatch sync', ['entity' => $entity, 'message' => $e->getMessage()]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -103,7 +104,7 @@ class SyncManagerController extends Controller
     {
         Log::info("SYNC_PULL: Mulai tarik data referensi [{$entity}]");
 
-        $batch = Bus::batch([new $jobClass()])
+        $batch = Bus::batch([new $jobClass])
             ->name("Sync {$entity}")
             ->then(function ($batch) use ($entity) {
                 Log::info("SYNC_SUCCESS: Sinkronisasi [{$entity}] selesai.");
@@ -115,7 +116,7 @@ class SyncManagerController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'batchId' => $batch->id
+            'batchId' => $batch->id,
         ]);
     }
 
@@ -126,7 +127,7 @@ class SyncManagerController extends Controller
     {
         $batch = Bus::findBatch($batchId);
 
-        if (!$batch) {
+        if (! $batch) {
             return response()->json(['status' => 'not_found'], 404);
         }
 

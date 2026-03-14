@@ -2,29 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
+use App\Http\Requests\Api\V1\StoreMahasiswaRequest;
 use App\Models\Agama;
 use App\Models\AlatTransportasi;
 use App\Models\JenisTinggal;
 use App\Models\JenjangPendidikan;
+use App\Models\Mahasiswa;
+use App\Models\Negara;
 use App\Models\Pekerjaan;
 use App\Models\Penghasilan;
-
-use App\Models\Negara;
 use App\Models\ReferenceWilayah;
-use App\Models\Mahasiswa;
-use App\Http\Requests\Api\V1\StoreMahasiswaRequest;
-use Illuminate\Support\Facades\DB;
-
-use App\Services\Feeder\Reference\ReferenceJenisPendaftaranService;
-use App\Services\Feeder\Reference\ReferenceJalurPendaftaranService;
-use App\Services\Feeder\Reference\ReferenceSemesterService;
-use App\Services\Feeder\Reference\ReferencePembiayaanService;
-use App\Services\Feeder\Reference\ReferenceProgramStudiService;
-use App\Services\Feeder\Reference\ReferenceProfilPTService;
-
 use App\Services\Feeder\Reference\ReferenceDataSyncService;
+use App\Services\Feeder\Reference\ReferenceJalurPendaftaranService;
+use App\Services\Feeder\Reference\ReferenceJenisPendaftaranService;
+use App\Services\Feeder\Reference\ReferencePembiayaanService;
+use App\Services\Feeder\Reference\ReferenceProfilPTService;
+use App\Services\Feeder\Reference\ReferenceProgramStudiService;
+use App\Services\Feeder\Reference\ReferenceSemesterService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class MahasiswaController extends Controller
@@ -37,8 +33,7 @@ class MahasiswaController extends Controller
         protected ReferenceProgramStudiService $programStudiService,
         protected ReferenceProfilPTService $profilPTService,
         protected ReferenceDataSyncService $refSyncService,
-    ) {
-    }
+    ) {}
 
     /**
      * Display a listing of the resource.
@@ -47,12 +42,13 @@ class MahasiswaController extends Controller
     {
         try {
             $user = $service->generate($mahasiswa);
-            if (!$user) {
+            if (! $user) {
                 return back()->with('error', 'Mahasiswa ini sudah memiliki akun pengguna.');
             }
-            return back()->with('success', 'Akun pengguna berhasil dibuat untuk mahasiswa: ' . $mahasiswa->nama_mahasiswa);
+
+            return back()->with('success', 'Akun pengguna berhasil dibuat untuk mahasiswa: '.$mahasiswa->nama_mahasiswa);
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal membuat akun: ' . $e->getMessage());
+            return back()->with('error', 'Gagal membuat akun: '.$e->getMessage());
         }
     }
 
@@ -60,7 +56,7 @@ class MahasiswaController extends Controller
     {
         $request->validate([
             'id' => 'required|exists:mahasiswas,id',
-            'tipe_kelas' => 'required|in:Pagi,Sore'
+            'tipe_kelas' => 'required|in:Pagi,Sore',
         ]);
 
         $mahasiswa = Mahasiswa::findOrFail($request->id);
@@ -74,15 +70,15 @@ class MahasiswaController extends Controller
         }
         $mahasiswa->save();
 
-        Log::info("CRUD_UPDATE: Tipe Kelas Mahasiswa ditoggle", [
+        Log::info('CRUD_UPDATE: Tipe Kelas Mahasiswa ditoggle', [
             'mahasiswa_id' => $mahasiswa->id,
-            'tipe_kelas' => $request->tipe_kelas
+            'tipe_kelas' => $request->tipe_kelas,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Status tipe kelas berhasil diubah menjadi ' . $request->tipe_kelas,
-            'tipe_kelas' => $request->tipe_kelas
+            'message' => 'Status tipe kelas berhasil diubah menjadi '.$request->tipe_kelas,
+            'tipe_kelas' => $request->tipe_kelas,
         ]);
     }
 
@@ -91,7 +87,7 @@ class MahasiswaController extends Controller
         $request->validate([
             'mahasiswa_ids' => 'required|array',
             'mahasiswa_ids.*' => 'exists:mahasiswas,id',
-            'tipe_kelas' => 'required|in:Pagi,Sore'
+            'tipe_kelas' => 'required|in:Pagi,Sore',
         ]);
 
         DB::beginTransaction();
@@ -99,21 +95,22 @@ class MahasiswaController extends Controller
             $updated = Mahasiswa::whereIn('id', $request->mahasiswa_ids)->update([
                 'tipe_kelas' => $request->tipe_kelas,
                 'is_local_change' => true,
-                'status_sinkronisasi' => DB::raw("CASE WHEN status_sinkronisasi = 'created_local' THEN status_sinkronisasi ELSE 'updated_local' END")
+                'status_sinkronisasi' => DB::raw("CASE WHEN status_sinkronisasi = 'created_local' THEN status_sinkronisasi ELSE 'updated_local' END"),
             ]);
 
             DB::commit();
 
-            Log::info("CRUD_UPDATE: Bulk Update Tipe Kelas Mahasiswa", [
+            Log::info('CRUD_UPDATE: Bulk Update Tipe Kelas Mahasiswa', [
                 'count' => $updated,
-                'tipe_kelas' => $request->tipe_kelas
+                'tipe_kelas' => $request->tipe_kelas,
             ]);
 
             return back()->with('success', "Berhasil mengubah tipe kelas menjadi {$request->tipe_kelas} untuk {$updated} mahasiswa.");
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("SYSTEM_ERROR: Gagal bulk update tipe kelas mahasiswa", ['message' => $e->getMessage()]);
-            return back()->with('error', "Gagal mengubah tipe kelas massal: " . $e->getMessage());
+            Log::error('SYSTEM_ERROR: Gagal bulk update tipe kelas mahasiswa', ['message' => $e->getMessage()]);
+
+            return back()->with('error', 'Gagal mengubah tipe kelas massal: '.$e->getMessage());
         }
     }
 
@@ -132,8 +129,9 @@ class MahasiswaController extends Controller
             foreach ($mahasiswas as $mhs) {
                 $nim = $mhs->riwayatAktif->nim ?? null;
 
-                if (!$nim || strlen($nim) < 5) {
+                if (! $nim || strlen($nim) < 5) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -151,9 +149,9 @@ class MahasiswaController extends Controller
 
             DB::commit();
 
-            Log::info("CRUD_UPDATE: Inisialisasi Tipe Kelas Massal dari NIM", [
+            Log::info('CRUD_UPDATE: Inisialisasi Tipe Kelas Massal dari NIM', [
                 'updated' => $updated,
-                'skipped' => $skipped
+                'skipped' => $skipped,
             ]);
 
             $msg = "Berhasil menginisialisasi tipe kelas untuk {$updated} mahasiswa.";
@@ -164,11 +162,12 @@ class MahasiswaController extends Controller
             return response()->json(['success' => true, 'message' => $msg, 'updated' => $updated, 'skipped' => $skipped]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("SYSTEM_ERROR: Gagal inisialisasi tipe kelas massal", [
+            Log::error('SYSTEM_ERROR: Gagal inisialisasi tipe kelas massal', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return response()->json(['success' => false, 'message' => 'Gagal: ' . $e->getMessage()], 500);
+
+            return response()->json(['success' => false, 'message' => 'Gagal: '.$e->getMessage()], 500);
         }
     }
 
@@ -176,7 +175,7 @@ class MahasiswaController extends Controller
     {
         $request->validate([
             'mahasiswa_ids' => 'required|array',
-            'mahasiswa_ids.*' => 'exists:mahasiswas,id'
+            'mahasiswa_ids.*' => 'exists:mahasiswas,id',
         ]);
 
         $mahasiswas = Mahasiswa::whereIn('id', $request->mahasiswa_ids)->whereNull('user_id')->get();
@@ -185,7 +184,7 @@ class MahasiswaController extends Controller
         foreach ($mahasiswas as $mahasiswa) {
             try {
                 // Robust safety check
-                if ($mahasiswa && !$mahasiswa instanceof Mahasiswa) {
+                if ($mahasiswa && ! $mahasiswa instanceof Mahasiswa) {
                     $id = is_object($mahasiswa) ? ($mahasiswa->id ?? null) : $mahasiswa;
                     $mahasiswa = $id ? Mahasiswa::find($id) : null;
                 }
@@ -226,13 +225,14 @@ class MahasiswaController extends Controller
             foreach ($mahasiswas as $mhs) {
                 try {
                     // Robust safety check: Ensure we have a Mahasiswa model instance
-                    if ($mhs && !$mhs instanceof Mahasiswa) {
+                    if ($mhs && ! $mhs instanceof Mahasiswa) {
                         $id = is_object($mhs) ? ($mhs->id ?? null) : $mhs;
                         $mhs = $id ? Mahasiswa::find($id) : null;
                     }
 
-                    if (!$mhs instanceof Mahasiswa) {
+                    if (! $mhs instanceof Mahasiswa) {
                         $skipped++;
+
                         continue;
                     }
 
@@ -251,7 +251,7 @@ class MahasiswaController extends Controller
                 }
             }
 
-            Log::info("CRUD_CREATE: Inisialisasi Akun Massal Mahasiswa", [
+            Log::info('CRUD_CREATE: Inisialisasi Akun Massal Mahasiswa', [
                 'created' => $created,
                 'skipped' => $skipped,
                 'errors_sample' => $errors,
@@ -269,11 +269,12 @@ class MahasiswaController extends Controller
                 'skipped' => $skipped,
             ]);
         } catch (\Exception $e) {
-            Log::error("SYSTEM_ERROR: Gagal inisialisasi akun massal", [
+            Log::error('SYSTEM_ERROR: Gagal inisialisasi akun massal', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return response()->json(['success' => false, 'message' => 'Gagal: ' . $e->getMessage()], 500);
+
+            return response()->json(['success' => false, 'message' => 'Gagal: '.$e->getMessage()], 500);
         }
     }
 
@@ -284,13 +285,14 @@ class MahasiswaController extends Controller
     {
         try {
             $ids = Mahasiswa::whereNull('user_id')->pluck('id')->toArray();
+
             return response()->json([
                 'success' => true,
                 'total' => count($ids),
-                'ids' => $ids
+                'ids' => $ids,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Gagal mengambil data target akun: ' . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil data target akun: '.$e->getMessage()]);
         }
     }
 
@@ -303,14 +305,14 @@ class MahasiswaController extends Controller
         $latestYear = $latestPeriodeMasuk ? substr($latestPeriodeMasuk, 0, 4) : null;
 
         $selectedPeriode = $request->periode_masuk; // Ini sekarang bisa berbentuk array
-        if ($selectedPeriode && !is_array($selectedPeriode)) {
+        if ($selectedPeriode && ! is_array($selectedPeriode)) {
             $selectedPeriode = [$selectedPeriode];
         }
         $selectedProdi = $request->prodi;
         $showAll = $request->has('all'); // ?all=1 untuk menampilkan semua
 
         // Jika belum ada filter dari user dan bukan request "all", gunakan tahun terakhir
-        if (!$request->filled('periode_masuk') && !$showAll && $latestYear) {
+        if (! $request->filled('periode_masuk') && ! $showAll && $latestYear) {
             $selectedPeriode = [$latestYear];
         }
 
@@ -319,27 +321,19 @@ class MahasiswaController extends Controller
         $query = Mahasiswa::select('mahasiswas.*')
             ->with(['riwayatAktif.prodi', 'riwayatAktif.semester', 'agama'])
             ->addSelect([
-                'total_sks' => \App\Models\PesertaKelasKuliah::selectRaw('COALESCE(SUM(sks_mk), 0)')
-                    ->fromRaw('(
-                        SELECT DISTINCT ON (rp_sub.id_mahasiswa, kk_sub.id_matkul) 
-                            kk_sub.sks_mk, rp_sub.id_mahasiswa, kk_sub.id_semester
-                        FROM peserta_kelas_kuliah pkk_sub
-                        JOIN kelas_kuliah kk_sub ON kk_sub.id_kelas_kuliah = pkk_sub.id_kelas_kuliah
-                        JOIN riwayat_pendidikans rp_sub ON rp_sub.id = pkk_sub.riwayat_pendidikan_id
-                        WHERE pkk_sub.nilai_huruf IS NOT NULL
-                        AND pkk_sub.nilai_huruf NOT IN (\'E\', \'T\')
-                        ' . (!empty($selectedPeriode) ? 'AND (' . collect($selectedPeriode)->map(fn($y) => "kk_sub.id_semester LIKE '" . (int) $y . "%'")->implode(' OR ') . ')' : '') . '
-                        ORDER BY rp_sub.id_mahasiswa, kk_sub.id_matkul, pkk_sub.nilai_indeks DESC
-                    ) as sub')
-                    ->whereColumn('sub.id_mahasiswa', 'mahasiswas.id')
+                'total_sks' => \App\Models\PesertaKelasKuliah::selectRaw('COALESCE(SUM(kk_sub.sks_mk), 0)')
+                    ->from('peserta_kelas_kuliah as pkk_sub')
+                    ->join('kelas_kuliah as kk_sub', 'kk_sub.id_kelas_kuliah', '=', 'pkk_sub.id_kelas_kuliah')
+                    ->join('riwayat_pendidikans as rp_sub', 'rp_sub.id', '=', 'pkk_sub.riwayat_pendidikan_id')
+                    ->whereColumn('rp_sub.id_mahasiswa', 'mahasiswas.id'),
             ]);
 
         // Filter berdasarkan Tahun Angkatan (Prefix Match pada id_periode_masuk)
-        if (!empty($selectedPeriode)) {
+        if (! empty($selectedPeriode)) {
             $query->whereHas('riwayatAktif', function ($q) use ($selectedPeriode) {
                 $q->where(function ($qq) use ($selectedPeriode) {
                     foreach ($selectedPeriode as $year) {
-                        $qq->orWhere('id_periode_masuk', 'LIKE', $year . '%');
+                        $qq->orWhere('id_periode_masuk', 'LIKE', $year.'%');
                     }
                 });
             });
@@ -422,7 +416,7 @@ class MahasiswaController extends Controller
         } catch (\Exception $e) {
             return back()
                 ->withInput()
-                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage());
+                ->with('error', 'Gagal menyimpan data: '.$e->getMessage());
         }
     }
 
@@ -465,13 +459,13 @@ class MahasiswaController extends Controller
 
         if ($wilayahData['provinsi']) {
             $kabupatenOptions = ReferenceWilayah::getKabupatenByProvinsi($wilayahData['provinsi']->id_wilayah)
-                ->mapWithKeys(fn($item) => [trim($item->id_wilayah) => $item->nama_wilayah])
+                ->mapWithKeys(fn ($item) => [trim($item->id_wilayah) => $item->nama_wilayah])
                 ->toArray();
         }
 
         if ($wilayahData['kabupaten']) {
             $kecamatanOptions = ReferenceWilayah::getKecamatanByKabupaten($wilayahData['kabupaten']->id_wilayah)
-                ->mapWithKeys(fn($item) => [trim($item->id_wilayah) => $item->nama_wilayah])
+                ->mapWithKeys(fn ($item) => [trim($item->id_wilayah) => $item->nama_wilayah])
                 ->toArray();
         }
 
@@ -551,7 +545,7 @@ class MahasiswaController extends Controller
             $pesertaKelasKuliah = \App\Models\PesertaKelasKuliah::with([
                 'kelasKuliah',
                 'kelasKuliah.mataKuliah',
-                'kelasKuliah.dosenPengajar.dosenPenugasan.dosen'
+                'kelasKuliah.dosenPengajar.dosenPenugasan.dosen',
             ])
                 ->where('riwayat_pendidikan_id', $riwayatPendidikan->id)
                 ->whereHas('kelasKuliah', function ($query) use ($activeSemester) {
@@ -657,7 +651,7 @@ class MahasiswaController extends Controller
             'status_sinkronisasi' => 'updated_local',
         ]);
 
-        Log::info("CRUD_UPDATE: Mahasiswa diubah", ['id' => $mahasiswa->id, 'changes' => $changes]);
+        Log::info('CRUD_UPDATE: Mahasiswa diubah', ['id' => $mahasiswa->id, 'changes' => $changes]);
 
         return redirect()->route('admin.mahasiswa.detail', $id)
             ->with('success', 'Data mahasiswa berhasil diperbarui.');
@@ -685,7 +679,7 @@ class MahasiswaController extends Controller
                         'push_success',
                     ], true);
 
-                if (!$hasEverSynced) {
+                if (! $hasEverSynced) {
                     $mahasiswa->delete();
                 } else {
                     $mahasiswa->update([
@@ -700,7 +694,7 @@ class MahasiswaController extends Controller
 
             return redirect()->route('admin.mahasiswa.index')->with('success', 'Data mahasiswa berhasil dihapus.');
         } catch (\Exception $e) {
-            return redirect()->route('admin.mahasiswa.index')->with('error', 'Gagal menghapus data mahasiswa: ' . $e->getMessage());
+            return redirect()->route('admin.mahasiswa.index')->with('error', 'Gagal menghapus data mahasiswa: '.$e->getMessage());
         }
     }
 
@@ -729,14 +723,14 @@ class MahasiswaController extends Controller
         if ($kecamatan) {
             // Try relation first, fallback to manual fetch with trim
             $kabupaten = $kecamatan->parent;
-            if (!$kabupaten && $kecamatan->id_induk_wilayah) {
+            if (! $kabupaten && $kecamatan->id_induk_wilayah) {
                 $kabupaten = ReferenceWilayah::find(trim($kecamatan->id_induk_wilayah));
             }
 
             if ($kabupaten) {
                 // Try relation first, fallback to manual fetch with trim
                 $provinsi = $kabupaten->parent;
-                if (!$provinsi && $kabupaten->id_induk_wilayah) {
+                if (! $provinsi && $kabupaten->id_induk_wilayah) {
                     $provinsi = ReferenceWilayah::find(trim($kabupaten->id_induk_wilayah));
                 }
             }
