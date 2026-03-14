@@ -2,25 +2,26 @@
 
 namespace App\Services\Feeder;
 
-use App\Services\NeoFeederService;
-use App\Jobs\Feeder\PullMahasiswaJob;
-use App\Jobs\Feeder\PullRiwayatPendidikanJob;
-use App\Jobs\Feeder\PullMataKuliahJob;
-use App\Jobs\Feeder\PullKurikulumJob;
-use App\Jobs\Feeder\PullMatkulKurikulumJob;
-use App\Jobs\Feeder\PullKelasKuliahJob;
 use App\Jobs\Feeder\PullDosenJob;
 use App\Jobs\Feeder\PullDosenPengajarJob;
-use App\Jobs\Feeder\PullPesertaKelasJob;
+use App\Jobs\Feeder\PullKelasKuliahJob;
+use App\Jobs\Feeder\PullKurikulumJob;
+use App\Jobs\Feeder\PullMahasiswaJob;
+use App\Jobs\Feeder\PullMataKuliahJob;
+use App\Jobs\Feeder\PullMatkulKurikulumJob;
 use App\Jobs\Feeder\PullNilaiMahasiswaJob;
+use App\Jobs\Feeder\PullPesertaKelasJob;
+use App\Jobs\Feeder\PullRiwayatPendidikanJob;
+use App\Services\NeoFeederService;
+use Exception;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Log;
-use Exception;
 use Throwable;
 
 class FeederSyncService
 {
     protected NeoFeederService $feederService;
+
     protected int $chunkSize = 100;
 
     public function __construct(NeoFeederService $feederService)
@@ -68,11 +69,12 @@ class FeederSyncService
                 $data = $this->feederService->execute($act, [
                     'filter' => $this->buildFilterString($filters),
                     'limit' => $fetchLimit,
-                    'offset' => $offset
+                    'offset' => $offset,
                 ]);
 
-                if (empty($data))
+                if (empty($data)) {
                     break;
+                }
 
                 // 2. Chunk data yang baru ditarik and create jobs
                 $chunks = array_chunk($data, $activeChunkSize);
@@ -83,32 +85,42 @@ class FeederSyncService
                 $offset += $fetchLimit;
 
                 // Jika data yang diterima kurang dari limit, artinya sudah habis
-                if (count($data) < $fetchLimit)
+                if (count($data) < $fetchLimit) {
                     break;
+                }
             }
         } catch (Exception $e) {
             Log::error("SYNC_PULL_FAILED: Gagal menarik data [{$entity}] dari Feeder", [
                 'offset' => $offset,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
 
         if (empty($allJobs)) {
             Log::info("SYNC_PULL: Tidak ada data [{$entity}] untuk ditarik.");
+
             return 'empty';
         }
+
+        $totalJobs = count($allJobs);
+        Log::info("SYNC_PULL_DISPATCH: Dispatching batch for [{$entity}]", [
+            'total_jobs' => $totalJobs,
+            'total_records' => $offset,
+        ]);
 
         // 3. Dispatch Batch
         $batch = Bus::batch($allJobs)
             ->name("Sync {$entity}")
-            ->then(function ($batch) use ($entity) {
-                Log::info("SYNC_SUCCESS: Sinkronisasi [{$entity}] selesai.");
+            ->then(function ($batch) use ($entity, $offset) {
+                Log::info("SYNC_SUCCESS: Sinkronisasi [{$entity}] selesai. Total data: {$offset}");
             })
             ->catch(function ($batch, Throwable $e) use ($entity) {
                 Log::error("SYNC_ERROR: Batch [{$entity}] gagal", ['message' => $e->getMessage()]);
             })
             ->dispatch();
+
+        Log::info("SYNC_PULL_BATCH_ID: Batch ID [{$batch->id}] generated for [{$entity}]");
 
         return $batch->id;
     }
@@ -149,13 +161,15 @@ class FeederSyncService
 
     protected function buildFilterString(array $filters): string
     {
-        if (empty($filters))
-            return "";
+        if (empty($filters)) {
+            return '';
+        }
 
         $parts = [];
         foreach ($filters as $key => $value) {
             $parts[] = "{$key} = '{$value}'";
         }
-        return implode(" AND ", $parts);
+
+        return implode(' AND ', $parts);
     }
 }

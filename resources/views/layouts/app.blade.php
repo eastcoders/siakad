@@ -51,6 +51,7 @@
 
     <x-scripts />
     <x-alerts.sweetalert />
+    <x-first-login-modal />
 </body>
 
 </html>

@@ -9,11 +9,9 @@ use App\Http\Controllers\MataKuliahController;
 use App\Http\Controllers\RiwayatPendidikanMahasiswaController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
 Route::middleware(['auth'])->group(function () {
+    Route::post('/first-login', [\App\Http\Controllers\Auth\FirstLoginController::class, 'update'])->name('first-login.update');
+
     Route::get('/dashboard', function () {
         // Init active role if not set
         if (! session()->has('active_role') && auth()->user()->roles->count() > 0) {
@@ -242,18 +240,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::put('/jadwal-global/{id}/update', [JadwalGlobalController::class, 'update'])->name('admin.jadwal-global.update');
     Route::get('/jadwal-global/kelas-by-semester', [JadwalGlobalController::class, 'getKelasBySemester'])->name('admin.jadwal-global.kelas-by-semester');
 
-    // Route Manajemen Ujian
-    Route::post('/ujian/{jadwal}/generate-peserta', [\App\Http\Controllers\Admin\JadwalUjianController::class, 'generatePeserta'])
-        ->name('admin.ujian.generate-peserta');
-    Route::get('/ujian/{jadwal}/peserta', [\App\Http\Controllers\Admin\JadwalUjianController::class, 'peserta'])
-        ->name('admin.ujian.peserta');
-    Route::post('/ujian/{jadwal}/peserta/{pesertaUjian}/mark-printed', [\App\Http\Controllers\Admin\JadwalUjianController::class, 'markAsPrinted'])
-        ->name('admin.ujian.mark-printed');
-    Route::post('/ujian/{jadwal}/peserta/{pesertaUjian}/toggle-dispensasi', [\App\Http\Controllers\Admin\JadwalUjianController::class, 'toggleDispensasi'])
-        ->name('admin.ujian.toggle-dispensasi');
-    Route::get('/ujian/print-kartu/{pesertaUjianId}', [\App\Http\Controllers\Admin\JadwalUjianController::class, 'printKartu'])
-        ->name('admin.ujian.print-kartu');
-
     // Pengaturan Waktu Cetak Ujian Masing-Masing Semester
     Route::get('/pengaturan-ujian', [\App\Http\Controllers\Admin\PengaturanUjianController::class, 'index'])
         ->name('admin.pengaturan-ujian.index');
@@ -271,6 +257,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
         Route::delete('/{id}', 'destroy')->name('destroy');
         Route::post('/{id}/generate-peserta', 'generatePeserta')->name('generate-peserta');
         Route::get('/{id}/peserta', 'peserta')->name('peserta');
+        Route::post('/{jadwalId}/peserta/{pesertaUjianId}/mark-printed', 'markAsPrinted')->name('mark-printed');
+        Route::post('/{jadwalId}/peserta/{pesertaUjianId}/toggle-dispensasi', 'toggleDispensasi')->name('toggle-dispensasi');
         Route::post('/cetak/{pesertaUjianId}', 'cetakKartu')->name('cetak-kartu');
         Route::get('/print/{pesertaUjianId}', 'printKartu')->name('print-kartu');
         Route::get('/permintaan-cetak', 'permintaanCetak')->name('permintaan-cetak');
@@ -416,5 +404,9 @@ Route::middleware(['auth', 'role:Kaprodi'])->prefix('kaprodi')->name('kaprodi.')
     Route::post('/surat/{id}/validate', [\App\Http\Controllers\Dosen\Kaprodi\SuratKaprodiController::class, 'updateStatus'])->name('surat.validate');
 });
 // ------------------------------------------------------------------------------------------------- //
+
+Route::get('/', function () {
+    return view('welcome');
+});
 
 require __DIR__.'/auth.php';

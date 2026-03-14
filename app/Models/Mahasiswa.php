@@ -32,6 +32,7 @@ class Mahasiswa extends Model
         'sync_error_message',
         'is_synced',
         'sumber_data',
+        'whatsapp',
     ];
 
     public function user()

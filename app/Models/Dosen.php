@@ -30,6 +30,7 @@ class Dosen extends Model
         'is_active',
         'is_struktural',
         'is_pengajar',
+        'whatsapp',
     ];
 
     protected $casts = [

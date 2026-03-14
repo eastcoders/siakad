@@ -187,7 +187,9 @@
                 function poll() {
                     if (isFinished) return;
 
-                    $.get(`/admin/sync-manager/batch/${batchId}`, function (batch) {
+                    const pollUrl = "{{ route('admin.sync-manager.batch', ':batchId') }}".replace(':batchId', batchId);
+                    
+                    $.get(pollUrl, function (batch) {
                         const progress = batch.progress;
                         bar.css('width', progress + '%').attr('aria-valuenow', progress);
                         percentText.text(progress + '%');
@@ -213,10 +215,12 @@
                             // Only schedule next poll if not finished
                             setTimeout(poll, 3000);
                         }
-                    }).fail(function () {
+                    }).fail(function (xhr) {
                         if (!isFinished) {
                             isFinished = true;
-                            Swal.fire('Error', 'Gagal memantau progres sinkronisasi.', 'error');
+                            const status = xhr.status || 'Unknown';
+                            const statusText = xhr.statusText || 'Connection Error';
+                            Swal.fire('Error', `Gagal memantau progres sinkronisasi. (${status}: ${statusText})`, 'error');
                             resetBtn(btn, '<i class="ri-download-cloud-2-line me-1"></i> Tarik Data');
                         }
                     });

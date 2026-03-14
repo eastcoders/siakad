@@ -142,8 +142,8 @@ class SuratMahasiswaController extends Controller
                         });
                     })->pluck('nama_mahasiswa')->toArray();
 
-                if (! empty($alreadyCoveredPartners)) {
-                    return back()->withInput()->with('error', 'Mahasiswa berikut sudah terdaftar di permohonan PKL lain: '.implode(', ', $alreadyCoveredPartners));
+                if (!empty($alreadyCoveredPartners)) {
+                    return back()->withInput()->with('error', 'Mahasiswa berikut sudah terdaftar di permohonan PKL lain: ' . implode(', ', $alreadyCoveredPartners));
                 }
             }
         }
@@ -155,7 +155,7 @@ class SuratMahasiswaController extends Controller
                 'id_mahasiswa' => $mahasiswa->id,
                 'id_semester' => $validated['id_semester'],
                 'tipe_surat' => $tipe,
-                'nomor_tiket' => 'SR-'.date('Ymd').'-'.strtoupper(bin2hex(random_bytes(2))),
+                'nomor_tiket' => 'SR-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2))),
                 'status' => 'pending',
                 'alasan' => $validated['alasan'] ?? null,
                 'keperluan' => $validated['keperluan'] ?? null,
@@ -377,7 +377,7 @@ class SuratMahasiswaController extends Controller
         return response()->json($mahasiswaList->map(function ($m) {
             return [
                 'id' => $m->id,
-                'text' => $m->nama_mahasiswa.' ('.($m->nim ?? 'NIM Tdk Ada').')',
+                'text' => $m->nama_mahasiswa . ' (' . ($m->nim ?? 'NIM Tdk Ada') . ')',
             ];
         }));
     }
