@@ -316,6 +316,11 @@
                             <div data-i18n="Sync Manager">Neo Feeder Sync</div>
                         </a>
                     </li>
+                    <li class="menu-item {{ request()->routeIs('admin.sinkronisasi.index') ? 'active' : '' }}">
+                        <a href="{{ route('admin.sinkronisasi.index') }}" class="menu-link">
+                            <div data-i18n="Push Data">Push Data Kepusat</div>
+                        </a>
+                    </li>
                 </ul>
             </li>
 

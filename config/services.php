@@ -39,6 +39,7 @@ return [
         'url' => env('FEEDER_URL', 'http://localhost:3003/ws/live2.php'),
         'username' => env('FEEDER_USERNAME'),
         'password' => env('FEEDER_PASSWORD'),
+        'id_pt' => env('FEEDER_ID_PT'),
     ],
 
 ];

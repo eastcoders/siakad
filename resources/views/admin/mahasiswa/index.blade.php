@@ -111,7 +111,7 @@
                                     <span class="badge bg-warning rounded-pill"> <i class="ri-time-line me-1"></i> belum sync</span>
                                 @endif
                             </td>
-                            <td>{{  $loop->iteration }}</td>
+                            <td>{{ ($mahasiswa->currentPage() - 1) * $mahasiswa->perPage() + $loop->iteration }}</td>
                             <td>
                                 <span class="fw-bold text-primary">{{ $item->nama_mahasiswa }}</span>
                             </td>
@@ -143,7 +143,14 @@
             </table>
         </div>
         <div class="card-footer py-2">
-            {{-- Pagination handled by DataTables --}}
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    Paling atas: <b>Belum Sinkron</b>
+                </div>
+                <div>
+                    {{ $mahasiswa->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -181,6 +188,15 @@
                                             {{ $prd->nama_program_studi }}
                                         </option>
                                     @endforeach
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Status Sinkronisasi</label>
+                                <select class="form-select select2-filter" name="sync_status"
+                                    data-placeholder="-- Semua Status --">
+                                    <option value="">-- Semua Status --</option>
+                                    <option value="1" {{ $syncStatus === '1' ? 'selected' : '' }}>Sudah Sinkron</option>
+                                    <option value="0" {{ $syncStatus === '0' ? 'selected' : '' }}>Belum Sinkron</option>
                                 </select>
                             </div>
                         </div>
@@ -367,11 +383,12 @@
                     responsive: false,
                     scrollX: true,
                     drawCallback: function (settings) {
-                        // Dynamic row numbering sesuai dengan page saat ini
+                        // Dynamic row numbering handled by Blade/Laravel pagination offset
                         var api = this.api();
                         var startIndex = api.page.info().start;
+                        var laravelOffset = {{ ($mahasiswa->currentPage() - 1) * $mahasiswa->perPage() }};
                         api.column(3, { page: 'current' }).nodes().each(function (cell, i) {
-                            cell.innerHTML = startIndex + i + 1;
+                            cell.innerHTML = laravelOffset + startIndex + i + 1;
                         });
                     }
                 });

@@ -165,6 +165,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::post('/dispatch', 'dispatchSync')->name('dispatch');
         Route::get('/batch/{batchId}', 'checkBatch')->name('batch');
     });
+
+    // Dashboard Sinkronisasi (Phase 4)
+    Route::controller(\App\Http\Controllers\SinkronisasiController::class)->prefix('sinkronisasi')->name('sinkronisasi.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/get-ids', 'getUnsyncedIds')->name('get-ids');
+        Route::post('/push-biodata', 'pushBiodata')->name('push-biodata');
+        Route::post('/push-riwayat', 'pushRiwayat')->name('push-riwayat');
+    });
 });
 
 // ==========================================

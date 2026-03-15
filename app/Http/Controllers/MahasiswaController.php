@@ -311,10 +311,11 @@ class MahasiswaController extends Controller
         $selectedProdi = $request->prodi;
         $showAll = $request->has('all'); // ?all=1 untuk menampilkan semua
 
-        // Jika belum ada filter dari user dan bukan request "all", gunakan tahun terakhir
         if (! $request->filled('periode_masuk') && ! $showAll && $latestYear) {
             $selectedPeriode = [$latestYear];
         }
+
+        $syncStatus = $request->sync_status;
 
         $activeSemesterId = getActiveSemesterId() ?: $latestPeriodeMasuk;
 
@@ -346,8 +347,14 @@ class MahasiswaController extends Controller
             });
         }
 
-        // Urutkan berdasarkan Tahun Angkatan terbaru (id_periode_masuk DESC), lalu nama
+        // Filter berdasarkan Status Sinkronisasi
+        $query->when($request->filled('sync_status'), function ($q) use ($request) {
+            $q->where('is_synced', $request->sync_status);
+        });
+
+        // Urutkan berdasarkan prioritas sinkronisasi (Belum Sync di atas), ID Periode Masuk, lalu Nama
         $mahasiswa = $query
+            ->orderByRaw('is_synced ASC')
             ->orderByDesc(
                 \App\Models\RiwayatPendidikan::select('id_periode_masuk')
                     ->whereColumn('riwayat_pendidikans.id_mahasiswa', 'mahasiswas.id')
@@ -355,7 +362,8 @@ class MahasiswaController extends Controller
                     ->limit(1)
             )
             ->orderBy('nama_mahasiswa')
-            ->get();
+            ->paginate(25)
+            ->appends($request->query());
 
         // Data untuk dropdown filter (Daftar Tahun Angkatan Unik)
         $semesters = \App\Models\Semester::select('id_tahun_ajaran')
@@ -364,7 +372,15 @@ class MahasiswaController extends Controller
             ->get();
         $prodis = \App\Models\ProgramStudi::orderBy('nama_program_studi')->get();
 
-        return view('admin.mahasiswa.index', compact('mahasiswa', 'semesters', 'prodis', 'selectedPeriode', 'selectedProdi', 'showAll'));
+        return view('admin.mahasiswa.index', compact(
+            'mahasiswa',
+            'semesters',
+            'prodis',
+            'selectedPeriode',
+            'selectedProdi',
+            'showAll',
+            'syncStatus'
+        ));
     }
 
     /**
