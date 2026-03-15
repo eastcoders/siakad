@@ -16,6 +16,10 @@
         <div class="card-header border-bottom d-flex flex-wrap justify-content-between align-items-center gap-3">
             <h5 class="card-title mb-0">Daftar Mata Kuliah</h5>
             <div class="d-flex gap-2 align-items-center flex-wrap">
+                <button type="button" class="btn btn-outline-primary waves-effect waves-light" data-bs-toggle="modal"
+                    data-bs-target="#modalFilter">
+                    <i class="ri-filter-line me-1"></i> Filter
+                </button>
                 <a href="{{ route('admin.mata-kuliah.create') }}" class="btn btn-primary waves-effect waves-light">
                     <i class="ri-add-line me-1"></i> Tambah
                 </a>
@@ -66,51 +70,13 @@
                                 </div>
                             </td>
                             <td>
-                                @php
-                                    $statusClass = 'bg-label-secondary';
-                                    $statusText = 'Unknown';
-
-                                    if ($item->is_deleted_server) {
-                                        $statusClass = 'bg-label-danger';
-                                        $statusText = 'Dihapus Server';
-                                    } else {
-                                        if ($item->sumber_data === 'server' && $item->status_sinkronisasi === 'synced') {
-                                            $statusClass = 'bg-label-success';
-                                            $statusText = 'Server (Synced)';
-                                        } elseif ($item->sumber_data === 'lokal' && $item->status_sinkronisasi === 'created_local') {
-                                            $statusClass = 'bg-label-warning';
-                                            $statusText = 'Lokal (Belum Push)';
-                                        } elseif ($item->sumber_data === 'server' && $item->status_sinkronisasi === 'updated_local') {
-                                            $statusClass = 'bg-label-info';
-                                            $statusText = 'Server (Update Lokal)';
-                                        } elseif ($item->status_sinkronisasi === 'push_failed') {
-                                            $statusClass = 'bg-label-danger';
-                                            $statusText = 'Gagal Push';
-                                        } else {
-                                            switch ($item->status_sinkronisasi) {
-                                                case 'synced':
-                                                    $statusClass = 'bg-label-success';
-                                                    $statusText = 'Sudah Sync';
-                                                    break;
-                                                case 'created_local':
-                                                    $statusClass = 'bg-label-info';
-                                                    $statusText = 'Lokal';
-                                                    break;
-                                                case 'updated_local':
-                                                    $statusClass = 'bg-label-warning';
-                                                    $statusText = 'Update Lokal';
-                                                    break;
-                                                case 'pending_push':
-                                                    $statusClass = 'bg-label-secondary';
-                                                    $statusText = 'Pending Push';
-                                                    break;
-                                            }
-                                        }
-                                    }
-                                @endphp
-                                <span class="badge {{ $statusClass }} rounded-pill">{{ $statusText }}</span>
+                                @if ($item->is_synced)
+                                    <span class="badge bg-success rounded-pill"><i class="ri-check-line me-1"></i> Sudah Sync</span>
+                                @else
+                                    <span class="badge bg-warning rounded-pill"><i class="ri-time-line me-1"></i> Belum Sync</span>
+                                @endif
                             </td>
-                            <td>{{ $loop->iteration }}</td>
+                            <td>{{ ($mataKuliah->currentPage() - 1) * $mataKuliah->perPage() + $loop->iteration }}</td>
                             <td><span class="fw-semibold text-primary">{{ $item->kode_mk }}</span></td>
                             <td>{{ $item->nama_mk }}</td>
                             <td>{{ $item->sks }}</td>
@@ -121,22 +87,48 @@
                 </tbody>
             </table>
         </div>
+        <div class="card-footer py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted small">
+                    Paling atas: <b>Belum Sync</b>
+                </div>
+                <div>
+                    {{ $mataKuliah->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
+        </div>
     </div>
 
-    {{-- Placeholder Modal --}}
-    <div class="modal fade" id="mataKuliahModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
+    <!-- Modal Filter -->
+    <div class="modal fade" id="modalFilter" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="mataKuliahModalLabel">Form Mata Kuliah</h5>
+                    <h5 class="modal-title">Filter Mata Kuliah</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <p>Modal content will be implemented later.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
+                <form action="{{ route('admin.mata-kuliah.index') }}" method="GET">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Pencarian</label>
+                                <input type="text" name="search" class="form-control" placeholder="Nama atau Kode MK..." value="{{ request('search') }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Status Sinkronisasi</label>
+                                <select class="form-select" name="sync_status">
+                                    <option value="">-- Semua Status --</option>
+                                    <option value="1" {{ $syncStatus === '1' ? 'selected' : '' }}>Sudah Sync</option>
+                                    <option value="0" {{ $syncStatus === '0' ? 'selected' : '' }}>Belum Sync</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Terapkan Filter</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -150,28 +142,18 @@
             // DataTables init
             $('#mataKuliahTable').DataTable({
                 responsive: false,
-                scrollX: false,
-                pageLength: 10,
+                scrollX: true,
+                paging: false,
+                searching: false,
+                info: false,
                 columnDefs: [{
                     targets: 0,
                     orderable: false,
-                    searchable: false,
                 }],
                 language: {
-                    search: '',
-                    searchPlaceholder: 'Search...',
-                    lengthMenu: '_MENU_',
-                    info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
-                    infoEmpty: 'Tidak ada data',
                     emptyTable: 'Tidak ada data mata kuliah.',
-                    paginate: {
-                        first: '«',
-                        last: '»',
-                        next: '›',
-                        previous: '‹'
-                    }
                 },
-                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>>t<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
+                dom: 't',
             });
 
             // Handle Add Button

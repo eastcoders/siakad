@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\SyncableTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Kurikulum extends Model
 {
-    use HasFactory;
+    use HasFactory, SyncableTrait;
 
     protected $guarded = ['id'];
 
@@ -29,6 +30,7 @@ class Kurikulum extends Model
         'jumlah_sks_pilihan' => 'integer',
         'is_local_change' => 'boolean',
         'is_deleted_local' => 'boolean',
+        'is_synced' => 'boolean',
     ];
 
     /**
@@ -42,8 +44,8 @@ class Kurikulum extends Model
     protected static function booted()
     {
         static::addGlobalScope('sync_active', function ($builder) {
-            $builder->where('is_deleted_local', false)
-                ->where('is_deleted_server', false);
+            $builder->where('kurikulums.is_deleted_local', false)
+                ->where('kurikulums.is_deleted_server', false);
         });
     }
 
@@ -68,7 +70,7 @@ class Kurikulum extends Model
     public function matakuliah()
     {
         return $this->belongsToMany(MataKuliah::class, 'matkul_kurikulums', 'id_kurikulum', 'id_matkul', 'id_kurikulum', 'id_matkul')
-            ->withPivot(['semester', 'sks_mata_kuliah', 'sks_tatap_muka', 'sks_praktek', 'sks_praktek_lapangan', 'sks_simulasi', 'apakah_wajib', 'status_sinkronisasi', 'sumber_data', 'last_synced_at', 'sync_error_message', 'id_feeder']);
+            ->withPivot(['semester', 'sks_mata_kuliah', 'sks_tatap_muka', 'sks_praktek', 'sks_praktek_lapangan', 'sks_simulasi', 'apakah_wajib', 'status_sinkronisasi', 'sumber_data', 'last_synced_at', 'sync_error_message', 'id_feeder', 'is_synced']);
     }
 
     /**

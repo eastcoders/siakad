@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\SyncableTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class MataKuliah extends Model
 {
-    use HasFactory;
+    use HasFactory, SyncableTrait;
 
     protected $table = 'mata_kuliahs';
 
@@ -46,9 +47,9 @@ class MataKuliah extends Model
         'last_synced_at',
         'last_push_at',
         'sync_error_message',
-        'sync_action',
         'is_local_change',
         'is_deleted_local',
+        'is_synced',
     ];
 
     protected $casts = [
@@ -66,13 +67,14 @@ class MataKuliah extends Model
         'semester' => 'integer',
         'is_local_change' => 'boolean',
         'is_deleted_local' => 'boolean',
+        'is_synced' => 'boolean',
     ];
 
     protected static function booted()
     {
         static::addGlobalScope('sync_active', function ($builder) {
-            $builder->where('is_deleted_local', false)
-                ->where('is_deleted_server', false);
+            $builder->where('mata_kuliahs.is_deleted_local', false)
+                ->where('mata_kuliahs.is_deleted_server', false);
         });
     }
 

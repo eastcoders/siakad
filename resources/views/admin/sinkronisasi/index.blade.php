@@ -50,7 +50,7 @@
         <div class="col-12">
             <div class="card shadow-sm">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <h5 class="mb-0"><i class="ri-table-line me-2"></i>Rekapitulasi Data Belum Sinkron</h5>
+                    <h5 class="mb-0"><i class="ri-table-line me-2"></i>Rekapitulasi Data Belum Sync</h5>
                     <button class="btn btn-primary btn-lg shadow" id="btn-push-all">
                         <i class="ri-rocket-2-fill me-2"></i> Push Semua Data Secara Sekuensial
                     </button>

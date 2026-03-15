@@ -105,10 +105,9 @@
                             </td>
                             <td>
                                 @if ($item->is_synced)
-                                    <span class="badge bg-success rounded-pill"> <i class="ri-check-line me-1"></i> sudah
-                                        sync</span>
+                                    <span class="badge bg-success rounded-pill"><i class="ri-check-line me-1"></i> Sudah Sync</span>
                                 @else
-                                    <span class="badge bg-warning rounded-pill"> <i class="ri-time-line me-1"></i> belum sync</span>
+                                    <span class="badge bg-warning rounded-pill"><i class="ri-time-line me-1"></i> Belum Sync</span>
                                 @endif
                             </td>
                             <td>{{ ($mahasiswa->currentPage() - 1) * $mahasiswa->perPage() + $loop->iteration }}</td>
@@ -145,7 +144,7 @@
         <div class="card-footer py-2">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    Paling atas: <b>Belum Sinkron</b>
+                    Paling atas: <b>Belum Sync</b>
                 </div>
                 <div>
                     {{ $mahasiswa->links('pagination::bootstrap-5') }}
@@ -195,8 +194,8 @@
                                 <select class="form-select select2-filter" name="sync_status"
                                     data-placeholder="-- Semua Status --">
                                     <option value="">-- Semua Status --</option>
-                                    <option value="1" {{ $syncStatus === '1' ? 'selected' : '' }}>Sudah Sinkron</option>
-                                    <option value="0" {{ $syncStatus === '0' ? 'selected' : '' }}>Belum Sinkron</option>
+                                    <option value="1" {{ $syncStatus === '1' ? 'selected' : '' }}>Sudah Sync</option>
+                                    <option value="0" {{ $syncStatus === '0' ? 'selected' : '' }}>Belum Sync</option>
                                 </select>
                             </div>
                         </div>

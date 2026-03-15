@@ -11,10 +11,22 @@ class MataKuliahController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $mataKuliah = MataKuliah::with('prodi')->orderBy('kode_mk')->get();
-        return view('admin.mata-kuliah.index', compact('mataKuliah'));
+        $query = MataKuliah::with('prodi')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $q->where('nama_mk', 'LIKE', '%' . $request->search . '%')
+                  ->orWhere('kode_mk', 'LIKE', '%' . $request->search . '%');
+            })
+            ->filterSync($request->sync_status);
+
+        $mataKuliah = $query->orderBySync('kode_mk', 'asc')
+            ->paginate(25)
+            ->appends($request->query());
+
+        $syncStatus = $request->sync_status;
+
+        return view('admin.mata-kuliah.index', compact('mataKuliah', 'syncStatus'));
     }
 
     /**

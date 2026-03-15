@@ -113,6 +113,22 @@
                 </div>
             </div>
 
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <form action="{{ route('admin.kurikulum.show', $kurikulum->id) }}" method="GET" class="d-flex gap-2">
+                        <select name="sync_status" class="form-select form-select-sm" onchange="this.form.submit()" style="width: 150px;">
+                            <option value="">-- Semua Status --</option>
+                            <option value="1" {{ request('sync_status') === '1' ? 'selected' : '' }}>Sudah Sync</option>
+                            <option value="0" {{ request('sync_status') === '0' ? 'selected' : '' }}>Belum Sync</option>
+                        </select>
+                        <noscript><button type="submit" class="btn btn-sm btn-secondary">Filter</button></noscript>
+                    </form>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="text-muted small">Paling atas: <b>Belum Sync</b></span>
+                </div>
+            </div>
+
             <div class="table-responsive text-nowrap">
                 <table class="table table-hover table-striped" id="table-matkul-kurikulum">
                     <thead>
@@ -132,11 +148,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($kurikulum->matakuliah as $index => $mk)
+                        @foreach($matakuliahPivot as $mk)
                             <tr>
                                 <td>
                                     <form
-                                        action="{{ route('admin.kurikulum.matkul.destroy', ['id' => $kurikulum->id, 'id_matkul' => $mk->id_matkul]) }}"
+                                        action="{{ route('admin.kurikulum.matkul.destroy', ['id' => $kurikulum->id, 'id_matkul' => $mk->id]) }}"
                                         method="POST" onsubmit="return confirm('Hapus mata kuliah ini dari kurikulum?');">
                                         @csrf
                                         @method('DELETE')
@@ -146,13 +162,13 @@
                                     </form>
                                 </td>
                                 <td>
-                                    @if($mk->pivot->status_sinkronisasi == 'synced')
-                                        <span class="badge bg-label-success rounded-pill">sudah sync</span>
+                                    @if($mk->pivot->is_synced)
+                                        <span class="badge bg-success rounded-pill"><i class="ri-check-line me-1"></i> Sudah Sync</span>
                                     @else
-                                        <span class="badge bg-label-warning rounded-pill">belum sync</span>
+                                        <span class="badge bg-warning rounded-pill"><i class="ri-time-line me-1"></i> Belum Sync</span>
                                     @endif
                                 </td>
-                                <td>{{ $index + 1 }}</td>
+                                <td>{{ ($matakuliahPivot->currentPage() - 1) * $matakuliahPivot->perPage() + $loop->iteration }}</td>
                                 <td>{{ $mk->kode_mk }}</td>
                                 <td>{{ $mk->nama_mk }}</td>
                                 <td class="text-center">{{ $mk->pivot->sks_mata_kuliah }}</td>
@@ -175,12 +191,16 @@
                         <tr class="table-primary fw-bold">
                             <td colspan="5" class="text-end">Total SKS</td>
                             <td class="text-center">
-                                {{ $kurikulum->matakuliah->sum(fn($mk) => $mk->pivot->sks_mata_kuliah) }}
+                                {{ $matakuliahPivot->sum(fn($mk) => $mk->pivot->sks_mata_kuliah) }}
                             </td>
                             <td colspan="6"></td>
                         </tr>
                     </tfoot>
                 </table>
+            </div>
+            <div class="mt-3">
+                {{ $matakuliahPivot->links('pagination::bootstrap-5') }}
+            </div>
             </div>
         </div>
     </div>
@@ -202,15 +222,10 @@
             $('#table-matkul-kurikulum').DataTable({
                 responsive: false,
                 scrollX: true,
-                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6 d-flex justify-content-center justify-content-md-end"f>>t<"row"<"col-sm-12 col-md-6"i><"col-sm-12 col-md-6"p>>',
-                language: {
-                    search: '',
-                    searchPlaceholder: 'Cari Mata Kuliah...',
-                    paginate: {
-                        next: '<i class="ri-arrow-right-s-line"></i>',
-                        previous: '<i class="ri-arrow-left-s-line"></i>'
-                    }
-                }
+                paging: false,
+                searching: false,
+                info: false,
+                dom: 't',
             });
         });
     </script>

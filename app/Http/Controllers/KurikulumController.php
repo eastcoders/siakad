@@ -9,10 +9,21 @@ class KurikulumController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $kurikulums = \App\Models\Kurikulum::with(['prodi', 'semester'])->orderBy('nama_kurikulum')->get();
-        return view('admin.kurikulum.index', compact('kurikulums'));
+        $query = \App\Models\Kurikulum::with(['prodi', 'semester'])
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $q->where('nama_kurikulum', 'LIKE', '%' . $request->search . '%');
+            })
+            ->filterSync($request->sync_status);
+
+        $kurikulums = $query->orderBySync('nama_kurikulum', 'asc')
+            ->paginate(25)
+            ->appends($request->query());
+
+        $syncStatus = $request->sync_status;
+
+        return view('admin.kurikulum.index', compact('kurikulums', 'syncStatus'));
     }
 
     /**
@@ -55,12 +66,26 @@ class KurikulumController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $kurikulum = \App\Models\Kurikulum::with(['prodi', 'semester', 'matakuliah.prodi'])->findOrFail($id);
-        // Fetch all active mata kuliah for the dropdown, ordered by name
-        $mataKuliahs = \App\Models\MataKuliah::orderBy('nama_mk')->get();
-        return view('admin.kurikulum.show', compact('kurikulum', 'mataKuliahs'));
+        $kurikulum = \App\Models\Kurikulum::with(['prodi', 'semester'])->findOrFail($id);
+        
+        // Custom query for related matakuliah to support filtering and sorting
+        $matakuliahQuery = $kurikulum->matakuliah()
+            ->with('prodi')
+            ->when($request->filled('sync_status'), function ($q) use ($request) {
+                $q->wherePivot('is_synced', (bool) $request->sync_status);
+            })
+            ->orderByPivot('is_synced', 'asc')
+            ->orderByPivot('semester', 'asc')
+            ->orderBy('nama_mk', 'asc');
+
+        $matakuliahPivot = $matakuliahQuery->paginate(15)->appends($request->query());
+
+        $mataKuliahs = \App\Models\MataKuliah::active()->orderBy('nama_mk')->get();
+        $syncStatus = $request->sync_status;
+
+        return view('admin.kurikulum.show', compact('kurikulum', 'matakuliahPivot', 'mataKuliahs', 'syncStatus'));
     }
 
     /**
